@@ -68,18 +68,6 @@ impl WorkspaceView {
         }
     }
 
-    fn symbol(self) -> &'static str {
-        match self {
-            Self::Overview => "⌂",
-            Self::Workspaces => "▣",
-            Self::Evidence => "▤",
-            Self::Audio => "♫",
-            Self::Transcription => "≋",
-            Self::Analysis => "◉",
-            Self::Reports => "▧",
-            Self::Settings => "⚙",
-        }
-    }
 }
 
 pub fn show(
@@ -221,9 +209,7 @@ fn navigation_item(ui: &mut egui::Ui, view: WorkspaceView, selected: WorkspaceVi
         Color32::TRANSPARENT
     };
 
-    let label = RichText::new(format!("{}   {}", view.symbol(), view.title()))
-        .size(13.0)
-        .color(foreground);
+    let label = RichText::new(view.title()).size(13.0).color(foreground);
 
     ui.add_sized(
         [SIDEBAR_WIDTH - 32.0, 40.0],
@@ -266,7 +252,7 @@ fn draw_header(ui: &mut egui::Ui, view: WorkspaceView) {
                     );
                     ui.add_space(12.0);
                     ui.label(
-                        RichText::new("●  YEREL ÇALIŞMA")
+                        RichText::new("YEREL ÇALIŞMA")
                             .size(10.0)
                             .strong()
                             .color(SUCCESS),
@@ -326,9 +312,9 @@ fn draw_overview(
     );
     ui.add_space(8.0);
     ui.columns(3, |columns| {
-        draw_summary_card(&mut columns[0], "İncelemeler", "Henüz çalışma yok", "▣");
-        draw_summary_card(&mut columns[1], "Delil dosyaları", "Henüz dosya yok", "▤");
-        draw_summary_card(&mut columns[2], "Raporlar", "Henüz rapor yok", "▧");
+        draw_summary_card(&mut columns[0], "İncelemeler", "Henüz çalışma yok");
+        draw_summary_card(&mut columns[1], "Delil dosyaları", "Henüz dosya yok");
+        draw_summary_card(&mut columns[2], "Raporlar", "Henüz rapor yok");
     });
 
     ui.add_space(16.0);
@@ -345,17 +331,14 @@ fn draw_overview(
     }
 }
 
-fn draw_summary_card(ui: &mut egui::Ui, title: &str, description: &str, symbol: &str) {
+fn draw_summary_card(ui: &mut egui::Ui, title: &str, description: &str) {
     egui::Frame::new()
         .fill(SURFACE)
         .stroke(Stroke::new(1.0, BORDER))
         .corner_radius(CornerRadius::same(12))
         .inner_margin(egui::Margin::same(16))
         .show(ui, |ui| {
-            ui.horizontal(|ui| {
-                ui.label(RichText::new(symbol).size(19.0).color(ACCENT));
-                ui.label(RichText::new(title).size(12.0).strong().color(TEXT));
-            });
+            ui.label(RichText::new(title).size(12.0).strong().color(TEXT));
             ui.add_space(8.0);
             ui.label(RichText::new("—").size(24.0).strong().color(TEXT));
             ui.label(RichText::new(description).size(10.0).color(MUTED));
@@ -377,7 +360,6 @@ fn draw_recent_work_card(ui: &mut egui::Ui) {
             );
             ui.add_space(14.0);
             ui.horizontal(|ui| {
-                ui.label(RichText::new("▣").size(24.0).color(ACCENT));
                 ui.vertical(|ui| {
                     ui.label(
                         RichText::new("Henüz bir inceleme başlatılmadı")
@@ -408,10 +390,7 @@ fn draw_system_card(
         .corner_radius(CornerRadius::same(12))
         .inner_margin(egui::Margin::same(18))
         .show(ui, |ui| {
-            ui.horizontal(|ui| {
-                ui.label(RichText::new("▦").size(18.0).color(ACCENT));
-                ui.label(RichText::new("SİSTEM BİLGİSİ").size(10.0).strong().color(MUTED));
-            });
+            ui.label(RichText::new("SİSTEM BİLGİSİ").size(10.0).strong().color(MUTED));
             ui.add_space(10.0);
 
             if graphics_adapters.is_empty() {
@@ -455,8 +434,6 @@ fn draw_placeholder(ui: &mut egui::Ui, view: WorkspaceView) {
             ui.set_min_height(220.0);
             ui.vertical_centered(|ui| {
                 ui.add_space(25.0);
-                ui.label(RichText::new(view.symbol()).size(34.0).color(ACCENT));
-                ui.add_space(10.0);
                 ui.label(
                     RichText::new(format!("{} bölümü henüz hazır değil", view.title()))
                         .size(18.0)
@@ -477,6 +454,11 @@ fn draw_placeholder(ui: &mut egui::Ui, view: WorkspaceView) {
                 );
             });
         });
+}
+
+fn draw_status_indicator(ui: &mut egui::Ui, color: Color32) {
+    let (rect, _) = ui.allocate_exact_size(Vec2::splat(8.0), Sense::hover());
+    ui.painter().circle_filled(rect.center(), 3.5, color);
 }
 
 fn draw_status_bar(ui: &mut egui::Ui, update_status: &SharedUpdateStatus) {
@@ -514,9 +496,9 @@ fn draw_status_bar(ui: &mut egui::Ui, update_status: &SharedUpdateStatus) {
                 if is_checking {
                     ui.spinner();
                 } else if snapshot.error.is_some() {
-                    ui.label(RichText::new("!").strong().color(WARNING));
+                    draw_status_indicator(ui, WARNING);
                 } else {
-                    ui.label(RichText::new("●").color(SUCCESS));
+                    draw_status_indicator(ui, SUCCESS);
                 }
 
                 let status_text = if snapshot.error.is_some() {
@@ -556,6 +538,7 @@ fn draw_status_bar(ui: &mut egui::Ui, update_status: &SharedUpdateStatus) {
                             .size(10.0)
                             .color(MUTED),
                     );
+                    ui.add_space(8.0);
                     ui.label(RichText::new("Yerel çalışma").size(10.0).color(MUTED));
                 });
             });
