@@ -174,3 +174,19 @@ Bu iş, v0.1.8 ana ekran düzeltmesi doğrulandıktan sonra; delil işleme özel
 - Ekran görüntüleri varsayılan olarak depoya eklenmez. Yalnızca otomatik görsel regresyon testi için açıkça gerekli ve temizlenmiş bir örnek olduğunda değerlendirilir.
 - Görsel incelemede tespit edilen her sorun önce mevcut hedefin parçası mı diye değerlendirilir; yeni fikir olması tek başına kapsamı genişletmez.
 
+
+### 12.3. CI üzerinden otomatik ekran görüntüsü alma
+
+Tekrarlanan manuel ekran görüntüsü işini azaltmak için ileride CI sürecine görsel doğrulama adımı eklenmesi değerlendirilecektir.
+
+Hedeflenen yaklaşım:
+
+- Windows uygulaması derlendikten sonra CI ortamında DUYRA başlatılır.
+- Uygulama penceresi açıldıktan ve arayüz kararlı hâle geldikten sonra Genel Bakış ekranının görüntüsü alınır.
+- Görüntü, GitHub Actions çalışma kaydına bağlı bir artifact olarak saklanır; Release paketine ve web sayfasına eklenmez.
+- İlk aşamada yalnızca uygulamanın açılması ve ana ekranın temel yerleşimi kontrol edilir. Sonraki ekranlar geliştikçe kapsama alınır.
+- Ekran görüntüsünün CI ortamından güvenilir biçimde alınabildiği, indirilebildiği ve mühendis/inceleme sürecinde gerçekten görüntülenebildiği küçük bir teknik denemeyle doğrulanır.
+- CI ortamı grafik uygulamayı güvenilir biçimde başlatamıyor veya görüntüyü inceleme sürecine sunamıyorsa bu yöntem zorlanmaz; manuel ekran görüntüsü gönderme yöntemi devam eder.
+- Görüntüde kullanıcı verisi, gerçek delil veya kişisel dosya yolu bulunmamalıdır. Test verisi sabit ve yapay olmalıdır.
+
+Bu otomasyon, gerçek kullanıcının bilgisayarındaki görünümün birebir garantisi değildir. Sadece tekrarlanabilir bir erken görsel regresyon kontrolüdür; kullanıcı kabul testinin yerine geçmez.
