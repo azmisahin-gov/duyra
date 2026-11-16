@@ -10,11 +10,21 @@ DUYRA, bilirkişinin ses materyalini güvenli ve yerel biçimde incelemesine yar
 
 Uygulamayı bir kez indirin. Yeni sürüm yayımlandığında DUYRA açılışta GitHub Releases'i arka planda kontrol eder. Güncelleme paketi gömülü Ed25519 doğrulama anahtarıyla ve SHA-256 özetiyle doğrulanmadan yüklenmez. Doğrulama başarılı olursa uygulama kendini günceller ve yeni sürümle yeniden açılır.
 
-İlk sürüm Windows x64 içindir. Uygulama dosyasının bulunduğu klasörün kullanıcı tarafından yazılabilir olması gerekir. Güncelleme için internet bağlantısı gerekir; ağ veya yayın hatası uygulamanın mevcut sürümde açılmasını engellemez.
+## Windows uygulama konumu
+
+Uygulama dosyasını kullanıcı hesabında yazılabilir bir konumda tutun:
+
+`%LOCALAPPDATA%\Programs\DUYRA\duyra-windows-x86_64.exe`
+
+DUYRA günlükleri ve uygulama verileri ayrı tutulur:
+
+`%LOCALAPPDATA%\DUYRA\`
+
+İlk klasörün önceden bulunması gerekmez; kullanıcı tarafından oluşturulabilir. Uygulamayı `C:\` kök dizinine veya yönetici izni gerektiren bir klasöre koymayın. Otomatik güncelleme, uygulamanın bulunduğu klasöre yazabilmelidir.
 
 ## İlk sürümün kapsamı
 
-İlk ekran DUYRA logosunu, ürün adını ve sürüm numarasını gösterir. Ses işleme, deşifre, analiz, veri saklama ve rapor üretimi henüz bu sürümün kapsamında değildir.
+Ana ekran; Genel Bakış, İncelemeler, Delil Dosyaları, Ses İnceleme, Deşifre, Analiz, Raporlar ve Ayarlar için ortak gezinme düzenini sağlar. Henüz etkin olmayan bölümler açıkça belirtilir. Ses işleme ve delil iş akışları sırayla tamamlanacaktır.
 
 ## Teknoloji
 

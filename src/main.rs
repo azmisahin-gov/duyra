@@ -15,13 +15,14 @@ fn main() -> eframe::Result {
         viewport: eframe::egui::ViewportBuilder::default()
             .with_title("DUYRA")
             .with_icon(icon::window_icon())
-            .with_inner_size([720.0, 500.0])
-            .with_min_inner_size([560.0, 420.0]),
+            .with_inner_size([1180.0, 780.0])
+            .with_min_inner_size([920.0, 640.0]),
         ..Default::default()
     };
 
     let mut graphics_checked = false;
     let mut graphics_info: Option<(String, String)> = None;
+    let mut selected_view = app::WorkspaceView::Overview;
 
     eframe::run_ui_native("DUYRA", native_options, move |ui, frame| {
         if !graphics_checked {
@@ -47,6 +48,7 @@ fn main() -> eframe::Result {
             graphics_info.as_ref(),
             &graphics_adapters,
             &update_status,
+            &mut selected_view,
         );
     })
 }
