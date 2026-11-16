@@ -127,7 +127,9 @@ Otomatik güncelleme için kabul testi:
 - Kullanıcı ekranında bazı Unicode simgelerin yazı tipi nedeniyle boş/kutu karakter olarak göründüğü ve alt durum çubuğundaki metinlerin birbirine yaklaştığı görüldü.
 - Bu hedefte simgeler yazı tipine bağlı olmayan yerel çizimlerle gösterilir ve alt durum çubuğu aralıkları düzeltilir.
 - Windows CI kontrolleri, testler ve derleme başarılı olmalı; v0.1.8 Release yayımlanmalıdır.
-- v0.1.7'den v0.1.8'e gerçek güncelleme denenmeli ve yeni sürüm açıldıktan sonra ekran görüntüsü yeniden incelenmelidir.
+- v0.1.7'den v0.1.8'e gerçek güncelleme kullanıcı bilgisayarında gerçekleşti; kullanıcı uygulama açıkken yeni sürümün gelmediğini, kapatıp yeniden açınca güncellemenin otomatik uygulandığını bildirdi. Bu, mevcut açılışta tek seferlik kontrol davranışıyla uyumludur.
+- 1920×1080 ekrandan gönderilen ilk açılış görüntüsünde simgeler düzgün, alt durum çubuğu aralıklı görünmektedir; v0.1.8 görsel düzeltmeleri gerçek kullanıcı ekranında doğrulanmıştır.
+- İlk açılışta pencere ekranın sol üst tarafına yakın konumlanmıştır. Bu konum davranışı kaydedilmiş, merkezleme/son konumu hatırlama tercihi ayrı değerlendirmeye bırakılmıştır.
 - Bu hedef doğrulanmadan otomatik güncelleyici iyileştirmesine veya yeni delil/deşifre özelliklerine geçilmez.
 
 ## 11. Kapsamı küçük tutma
@@ -145,8 +147,8 @@ Bu bölüm sıradaki işleri görünür kılar; işler mevcut hedef tamamlanmada
 
 Mevcut kodun gerçek davranışı:
 
-- Güncelleme kontrolü yalnızca uygulama başlangıcında bir kez yapılır.
-- Altı saatlik periyodik kontrol yoktur.
+- Güncelleme kontrolü yalnızca uygulama başlangıcında bir kez yapılır. Kullanıcının v0.1.7 → v0.1.8 gerçek kullanım denemesinde, uygulama açıkken yeni sürüm gelmemiş; kapatılıp yeniden açıldıktan sonra güncelleme otomatik uygulanmıştır.
+- Altı saatlik periyodik kontrol yoktur. Uygulama açıkken yayımlanan yeni sürüm, mevcut davranışla ancak sonraki açılış kontrolünde bulunur.
 - Yeni sürüm bulunursa mevcut uygulama paketi indirir, imza doğrulaması yapar, kurar ve uygulamayı otomatik yeniden başlatır.
 - Kullanıcıya önce karar vereceği bir güncelleme bildirimi ve erteleme akışı henüz yoktur.
 - Açık inceleme/işlem durumunu takip ederek yeniden başlatmayı güvenli ana erteleme mekanizması henüz yoktur.
@@ -190,3 +192,16 @@ Hedeflenen yaklaşım:
 - Görüntüde kullanıcı verisi, gerçek delil veya kişisel dosya yolu bulunmamalıdır. Test verisi sabit ve yapay olmalıdır.
 
 Bu otomasyon, gerçek kullanıcının bilgisayarındaki görünümün birebir garantisi değildir. Sadece tekrarlanabilir bir erken görsel regresyon kontrolüdür; kullanıcı kabul testinin yerine geçmez.
+
+### 12.4. İlk açılış pencere konumu
+
+1920×1080 masaüstünden gönderilen v0.1.8 görüntüsünde DUYRA penceresi ilk açılışta ekranın sol üst tarafına yakın konumlanmıştır; kullanıcı pencereyi elle taşımamıştır.
+
+Bu bir gözlem olarak kaydedilmiştir. Henüz kesin karar değildir. İleride küçük bir arayüz hedefinde şu seçenekler değerlendirilecektir:
+
+- İlk açılışta pencereyi kullanılabilir ekran alanının ortasında açmak.
+- Sonraki açılışlarda kullanıcının son pencere konumunu ve boyutunu hatırlamak.
+- Kaydedilen konum artık bağlı ekranlarda mevcut değilse pencereyi görünür ve erişilebilir bir konuma geri almak.
+
+Uygulama varsayılan olarak tam ekran başlatılmak zorunda değildir. Bu davranış değiştirilmeden önce ilk açılış ve sonraki açılış senaryoları ayrı kabul ölçütleriyle kararlaştırılmalıdır.
+
