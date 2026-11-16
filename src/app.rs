@@ -184,9 +184,17 @@ fn draw_update_status(ui: &mut egui::Ui, update_status: &SharedUpdateStatus) {
         {
             ui.spinner();
         } else if snapshot.error.is_some() {
-            ui.label(RichText::new("!").strong().color(Color32::from_rgb(235, 166, 96)));
+            ui.label(
+                RichText::new("!")
+                    .strong()
+                    .color(Color32::from_rgb(235, 166, 96)),
+            );
         } else {
-            ui.label(RichText::new("✓").strong().color(Color32::from_rgb(112, 194, 151)));
+            ui.label(
+                RichText::new("✓")
+                    .strong()
+                    .color(Color32::from_rgb(112, 194, 151)),
+            );
         }
 
         ui.label(
@@ -208,7 +216,8 @@ fn draw_update_status(ui: &mut egui::Ui, update_status: &SharedUpdateStatus) {
             if ui.small_button("Günlük klasörünü aç").clicked()
                 && let Err(error) = updater::open_log_folder()
             {
-                ui.ctx().copy_text(format!("Günlük klasörü açılamadı: {error}"));
+                ui.ctx()
+                    .copy_text(format!("Günlük klasörü açılamadı: {error}"));
             }
 
             if ui.small_button("Tanılama özetini kopyala").clicked() {
@@ -216,9 +225,11 @@ fn draw_update_status(ui: &mut egui::Ui, update_status: &SharedUpdateStatus) {
             }
         });
         ui.label(
-            RichText::new("Ayrıntılı günlük yalnızca bu bilgisayara kaydedilir; otomatik olarak gönderilmez.")
-                .size(10.0)
-                .color(Color32::from_rgb(135, 155, 166)),
+            RichText::new(
+                "Ayrıntılı günlük yalnızca bu bilgisayara kaydedilir; otomatik olarak gönderilmez.",
+            )
+            .size(10.0)
+            .color(Color32::from_rgb(135, 155, 166)),
         );
     }
 }

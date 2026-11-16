@@ -75,7 +75,11 @@ pub fn check_on_startup() -> SharedUpdateStatus {
 #[cfg(target_os = "windows")]
 fn check_and_apply(status: SharedUpdateStatus) {
     let current_version = env!("CARGO_PKG_VERSION");
-    log_event("INFO", "başlangıç", &format!("Mevcut sürüm: {current_version}"));
+    log_event(
+        "INFO",
+        "başlangıç",
+        &format!("Mevcut sürüm: {current_version}"),
+    );
     set_status(
         &status,
         "github_kontrolü",
@@ -112,7 +116,12 @@ fn check_and_apply(status: SharedUpdateStatus) {
         Ok(Some(release)) => release,
         Ok(None) => {
             log_event("INFO", "sürüm_kontrolü", "Yeni sürüm bulunmadı.");
-            set_status(&status, "güncel", "DUYRA güncel. Yeni sürüm bulunamadı.", None);
+            set_status(
+                &status,
+                "güncel",
+                "DUYRA güncel. Yeni sürüm bulunamadı.",
+                None,
+            );
             return;
         }
         Err(error) => {
@@ -130,9 +139,7 @@ fn check_and_apply(status: SharedUpdateStatus) {
     set_status(
         &status,
         "paket_indirme_ve_doğrulama",
-        &format!(
-            "{target_version} bulundu. Paket indiriliyor; bütünlük ve imza doğrulanacak."
-        ),
+        &format!("{target_version} bulundu. Paket indiriliyor; bütünlük ve imza doğrulanacak."),
         Some(target_version.clone()),
     );
 
@@ -142,7 +149,9 @@ fn check_and_apply(status: SharedUpdateStatus) {
             log_event(
                 "INFO",
                 "kurulum",
-                &format!("Güncelleme uygulandı: {installed_version}. Uygulama yeniden başlatılıyor."),
+                &format!(
+                    "Güncelleme uygulandı: {installed_version}. Uygulama yeniden başlatılıyor."
+                ),
             );
             set_status(
                 &status,
@@ -170,7 +179,11 @@ fn check_and_apply(status: SharedUpdateStatus) {
             );
         }
         Err(error) => {
-            set_failure(&status, "indirme, imza doğrulama veya kurulum", &error.to_string());
+            set_failure(
+                &status,
+                "indirme, imza doğrulama veya kurulum",
+                &error.to_string(),
+            );
         }
     }
 }
@@ -191,9 +204,8 @@ fn set_status(
 }
 
 fn set_failure(shared: &SharedUpdateStatus, stage: &str, error: &str) {
-    let message = format!(
-        "Güncelleme tamamlanamadı ({stage}). DUYRA mevcut sürümle çalışmaya devam ediyor."
-    );
+    let message =
+        format!("Güncelleme tamamlanamadı ({stage}). DUYRA mevcut sürümle çalışmaya devam ediyor.");
     if let Ok(mut current) = shared.lock() {
         current.stage = stage.to_owned();
         current.message = message;
