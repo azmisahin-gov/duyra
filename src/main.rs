@@ -3,6 +3,8 @@
 mod app;
 mod updater;
 
+use eframe::glow::HasContext;
+
 fn main() -> eframe::Result {
     updater::check_on_startup();
 
