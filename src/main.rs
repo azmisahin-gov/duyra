@@ -2,7 +2,7 @@
 
 mod app;
 
-fn main() -> eframe::Result<()> {
+fn main() -> eframe::Result {
     let native_options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
             .with_title("DUYRA")
@@ -11,9 +11,7 @@ fn main() -> eframe::Result<()> {
         ..Default::default()
     };
 
-    eframe::run_native(
-        "DUYRA",
-        native_options,
-        Box::new(|_creation_context| Ok(Box::new(app::DuyraApp))),
-    )
+    eframe::run_ui_native("DUYRA", native_options, |ui, _frame| {
+        app::show(ui);
+    })
 }
