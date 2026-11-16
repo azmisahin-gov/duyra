@@ -1,0 +1,15 @@
+[package]
+name = "duyra"
+version = "0.1.0"
+edition = "2024"
+description = "DUYRA — Bilirkişi çalışma asistanı"
+publish = false
+
+[dependencies]
+eframe = { version = "0.37.0", default-features = false, features = ["default_fonts", "glow"] }
+
+[profile.release]
+opt-level = "s"
+lto = "thin"
+codegen-units = 1
+strip = true
