@@ -1,41 +1,89 @@
-name: Release
+name: DUYRA Sürüm Yayını
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "src/**"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   release:
-    name: Build and publish Windows x64
+    name: Windows x64 sürümünü oluştur
     runs-on: windows-latest
 
     steps:
-      - name: Checkout
+      - name: Depoyu indir
         uses: actions/checkout@v4
 
-      - name: Install stable Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-
-      - name: Build release binary
-        run: cargo build --release
-
-      - name: Package application
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Copy-Item target/release/duyra.exe dist/duyra.exe
-          Compress-Archive -Path dist/duyra.exe -DestinationPath dist/duyra-windows-x86_64.zip -Force
-
-      - name: Publish GitHub Release
+      - name: Sürüm numarasını kontrol et
+        id: version
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          gh release create "$env:GITHUB_REF_NAME" dist/duyra-windows-x86_64.zip --title "DUYRA $env:GITHUB_REF_NAME" --generate-notes
+          $match = Select-String -Path Cargo.toml -Pattern '^version\s*=\s*"([^"]+)"' | Select-Object -First 1
+          if (-not $match) { throw "Cargo.toml içinde paket sürümü bulunamadı." }
+          $version = $match.Matches.Groups[1].Value
+          $tag = "v$version"
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            "release_needed=false" >> $env:GITHUB_OUTPUT
+            Write-Host "$tag zaten yayımlanmış. Yeni sürüm oluşturulmayacak."
+          } else {
+            "release_needed=true" >> $env:GITHUB_OUTPUT
+            Write-Host "$tag henüz yok. Yeni sürüm hazırlanacak."
+          }
+
+      - name: Rust araçlarını kur
+        if: steps.version.outputs.release_needed == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Rust bağımlılık önbelleğini yükle
+        if: steps.version.outputs.release_needed == 'true'
+        uses: Swatinem/rust-cache@v2
+
+      - name: Biçimi denetle
+        if: steps.version.outputs.release_needed == 'true'
+        run: cargo fmt --all -- --check
+
+      - name: Clippy denetimini çalıştır
+        if: steps.version.outputs.release_needed == 'true'
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Testleri çalıştır
+        if: steps.version.outputs.release_needed == 'true'
+        run: cargo test
+
+      - name: Windows uygulamasını derle
+        if: steps.version.outputs.release_needed == 'true'
+        run: cargo build --release
+
+      - name: İndirme paketlerini hazırla
+        if: steps.version.outputs.release_needed == 'true'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item target/release/duyra.exe dist/duyra-windows-x86_64.exe
+          Compress-Archive -Path dist/duyra-windows-x86_64.exe -DestinationPath dist/duyra-windows-x86_64.zip -Force
+          $hash = (Get-FileHash dist/duyra-windows-x86_64.exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  duyra-windows-x86_64.exe" | Set-Content dist/SHA256SUMS.txt
+
+      - name: DUYRA sürümünü GitHub Releases sayfasında yayımla
+        if: steps.version.outputs.release_needed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" dist/duyra-windows-x86_64.exe dist/duyra-windows-x86_64.zip dist/SHA256SUMS.txt --target "${{ github.sha }}" --title "DUYRA ${{ steps.version.outputs.tag }}" --notes "DUYRA'nın ${{ steps.version.outputs.tag }} sürümü. Windows x64 için doğrudan çalıştırılabilir uygulama ve ZIP paketi ektedir. Uygulamayı indirin ve çalıştırın."
