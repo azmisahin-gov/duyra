@@ -150,13 +150,18 @@ jobs:
             "$zipHash  duyra-windows-update-x86_64-pc-windows-msvc.zip"
           ) | Set-Content "dist/SHA256SUMS.txt" -Encoding ascii
 
-          @"
+          $versionNotes = "docs/releases/${{ steps.version.outputs.tag }}.md"
+          if (Test-Path $versionNotes) {
+            Get-Content $versionNotes -Raw | Set-Content "dist/RELEASE_NOTES.txt" -Encoding utf8
+          } else {
+            @"
           DUYRA ${{ steps.version.outputs.tag }}
 
           Bu sürüm, Windows x64 için doğrudan çalıştırılabilir DUYRA uygulamasını ve uygulama içinden doğrulanarak kurulacak imzalı güncelleme paketini içerir.
 
           Uygulamayı bir kez indirin. Sonraki sürümler DUYRA açıldığında arka planda kontrol edilir; imza ve bütünlük doğrulaması başarılı olursa otomatik uygulanır.
           "@ | Set-Content "dist/RELEASE_NOTES.txt" -Encoding utf8
+          }
 
       - name: DUYRA sürümünü GitHub Releases sayfasında yayımla
         if: steps.version.outputs.release_needed == 'true'

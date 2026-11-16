@@ -2,11 +2,13 @@
 
 mod app;
 mod updater;
+mod system;
 
 use eframe::glow::HasContext;
 
 fn main() -> eframe::Result {
     updater::check_on_startup();
+    let graphics_adapters = system::video_adapters();
 
     let native_options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
@@ -40,6 +42,6 @@ fn main() -> eframe::Result {
             }
         }
 
-        app::show(ui, graphics_info.as_ref());
+        app::show(ui, graphics_info.as_ref(), &graphics_adapters);
     })
 }
