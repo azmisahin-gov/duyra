@@ -32,10 +32,10 @@ fn main() -> eframe::Result {
                     )
                 }));
 
-                if let Ok((renderer, vendor)) = info {
-                    if !renderer.trim().is_empty() {
-                        graphics_info = Some((renderer, vendor));
-                    }
+                if let Ok((renderer, vendor)) = info
+                    && !renderer.trim().is_empty()
+                {
+                    graphics_info = Some((renderer, vendor));
                 }
             }
         }
