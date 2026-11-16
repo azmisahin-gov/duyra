@@ -8,12 +8,16 @@ fn main() {
     }
 
     let mut resource = winresource::WindowsResource::new();
+    resource.set_language(0x041F); // Türkçe (Türkiye)
     resource
         .set_icon("assets/duyra.ico")
         .set("CompanyName", "DUYRA")
         .set("FileDescription", "DUYRA - Bilirkişi çalışma asistanı")
         .set("InternalName", "duyra")
-        .set("LegalCopyright", "Telif hakkı © 2026 DUYRA. Tüm hakları saklıdır.")
+        .set(
+            "LegalCopyright",
+            "Telif hakkı © 2026 DUYRA. Tüm hakları saklıdır.",
+        )
         .set("OriginalFilename", "duyra.exe")
         .set("ProductName", "DUYRA");
 

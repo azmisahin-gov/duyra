@@ -57,14 +57,7 @@ fn rounded_rectangle_distance(
     qx.max(0.0).hypot(qy.max(0.0)) + qx.max(qy).min(0.0) - radius
 }
 
-fn capsule_distance(
-    x: f32,
-    y: f32,
-    center_x: f32,
-    start_y: f32,
-    end_y: f32,
-    radius: f32,
-) -> f32 {
+fn capsule_distance(x: f32, y: f32, center_x: f32, start_y: f32, end_y: f32, radius: f32) -> f32 {
     let nearest_y = y.clamp(start_y, end_y);
     (x - center_x).hypot(y - nearest_y) - radius
 }
@@ -84,9 +77,8 @@ fn blend(pixel: &mut [u8], color: [u8; 3], alpha: f32) {
     for (destination_channel, source_channel) in pixel[..3].iter_mut().zip(color) {
         let destination = f32::from(*destination_channel);
         let source = f32::from(source_channel);
-        let output = (source * alpha
-            + destination * destination_alpha * (1.0 - alpha))
-            / output_alpha;
+        let output =
+            (source * alpha + destination * destination_alpha * (1.0 - alpha)) / output_alpha;
         *destination_channel = output.round() as u8;
     }
 
