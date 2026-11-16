@@ -35,11 +35,7 @@ fn draw_logo(ui: &mut egui::Ui) {
     let (rect, _response) = ui.allocate_exact_size(Vec2::splat(88.0), Sense::hover());
     let painter = ui.painter();
 
-    painter.rect_filled(
-        rect,
-        CornerRadius::same(22),
-        Color32::from_rgb(37, 65, 81),
-    );
+    painter.rect_filled(rect, CornerRadius::same(22), Color32::from_rgb(37, 65, 81));
 
     let center = rect.center();
     let heights = [16.0, 28.0, 43.0, 32.0, 19.0];
