@@ -90,7 +90,7 @@ pub fn show(
     selected_view: &mut WorkspaceView,
 ) {
     root_ui.ctx().set_visuals(egui::Visuals::dark());
-    root_ui.style_mut(|style| {
+    root_ui.ctx().style_mut_of(egui::Theme::Dark, |style| {
         style.visuals.panel_fill = BACKGROUND;
         style.visuals.window_fill = SURFACE;
         style.visuals.widgets.noninteractive.bg_fill = SURFACE;
