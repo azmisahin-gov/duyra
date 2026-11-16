@@ -160,9 +160,8 @@ fn check_and_apply(status: SharedUpdateStatus) {
                 Some(installed_version),
             );
 
-            if let Err(error) = self_update::restart::restart() {
-                set_failure(&status, "yeniden başlatma", &error.to_string());
-            }
+            let Err(error) = self_update::restart::restart();
+            set_failure(&status, "yeniden başlatma", &error.to_string());
         }
         Ok(result) => {
             let installed_version = result.version().to_owned();
