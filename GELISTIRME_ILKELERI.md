@@ -121,13 +121,14 @@ Otomatik güncelleme için kabul testi:
 
 ## 10. Şu anki hedef
 
-**Mevcut hedef: v0.1.7 ana ekran çalışma alanını tamamlamak ve gerçek kullanımda doğrulamak.**
+**Mevcut hedef: v0.1.8 ana ekran görsel düzeltmelerini tamamlamak ve gerçek kullanıcı ekranında doğrulamak.**
 
-- Sol gezinme, üst başlık, çalışma alanı ve alt durum çubuğu tek bir tutarlı ana ekran oluşturur.
-- Hazır olmayan bölümler açıkça yer tutucu olarak belirtilir.
-- Windows CI kontrolleri ve derleme başarılı olmalıdır.
-- Yayımlanan uygulama açılarak ekran düzeni gerçek kullanıcı tarafından incelenmelidir.
-- Bu hedef doğrulanmadan deşifre, analiz, lisans veya delil işleme özelliklerine geçilmez.
+- v0.1.7 ana çalışma alanı kullanıcı bilgisayarında açıldı ve ekran görüntüsüyle incelendi.
+- Kullanıcı ekranında bazı Unicode simgelerin yazı tipi nedeniyle boş/kutu karakter olarak göründüğü ve alt durum çubuğundaki metinlerin birbirine yaklaştığı görüldü.
+- Bu hedefte simgeler yazı tipine bağlı olmayan yerel çizimlerle gösterilir ve alt durum çubuğu aralıkları düzeltilir.
+- Windows CI kontrolleri, testler ve derleme başarılı olmalı; v0.1.8 Release yayımlanmalıdır.
+- v0.1.7'den v0.1.8'e gerçek güncelleme denenmeli ve yeni sürüm açıldıktan sonra ekran görüntüsü yeniden incelenmelidir.
+- Bu hedef doğrulanmadan otomatik güncelleyici iyileştirmesine veya yeni delil/deşifre özelliklerine geçilmez.
 
 ## 11. Kapsamı küçük tutma
 
@@ -135,3 +136,41 @@ Otomatik güncelleme için kabul testi:
 - Teknik belge yalnızca karar, kullanım veya bakım için gerekiyorsa eklenir.
 - Geliştirme ilkeleri ve ürün kararları bu dosyada tutulur; README buraya bağlantı verir.
 - Çalışmayan veya sınanmamış bir davranış hiçbir yerde tamamlanmış gibi anlatılmaz.
+
+## 12. Sonraki hedefler ve ekran doğrulama yöntemi
+
+Bu bölüm sıradaki işleri görünür kılar; işler mevcut hedef tamamlanmadan başlatılmaz.
+
+### 12.1. Otomatik güncelleyiciyi güvenli hâle getirme
+
+Mevcut kodun gerçek davranışı:
+
+- Güncelleme kontrolü yalnızca uygulama başlangıcında bir kez yapılır.
+- Altı saatlik periyodik kontrol yoktur.
+- Yeni sürüm bulunursa mevcut uygulama paketi indirir, imza doğrulaması yapar, kurar ve uygulamayı otomatik yeniden başlatır.
+- Kullanıcıya önce karar vereceği bir güncelleme bildirimi ve erteleme akışı henüz yoktur.
+- Açık inceleme/işlem durumunu takip ederek yeniden başlatmayı güvenli ana erteleme mekanizması henüz yoktur.
+
+Kullanıcının istediği sonraki hedef:
+
+- Varsayılan kontrol aralığı 6 saat olmalıdır; açılış kontrolü ve uygulama açık kaldığı sürece periyodik kontrol birlikte ele alınmalıdır.
+- Kontrol zamanları eşzamanlı istek yükü oluşturmamak için rastgele küçük gecikmeyle dağıtılmalı; ağ sınırı ve geçici hatalarda artan bekleme uygulanmalıdır.
+- Yeni sürüm bulunduğunda kullanıcı açıkça bilgilendirilmelidir.
+- Kullanıcı isterse "Şimdi güncelle" diyebilmelidir.
+- Diğer durumda indirme ve imza/bütünlük doğrulaması arka planda yapılabilir; kurulum ve yeniden başlatma kullanıcının çalışmasını kesmemelidir.
+- Güvenli boşta kalma algısı tek başına yeterli sayılmamalı; kullanıcının onayı/tercihi, açık inceleme, kaydedilmemiş değişiklik ve süren işler birlikte dikkate alınmalıdır.
+- Güncelleme başarısız olursa mevcut sürüm çalışmaya devam etmeli ve hata yerel günlüğe yazılmalıdır.
+- Güncelleme imzalama anahtarı ile olası lisans anahtarları birbirinden ayrı kalmalıdır.
+
+Bu iş, v0.1.8 ana ekran düzeltmesi doğrulandıktan sonra; delil işleme özellikleri eklenmeden önce ayrı bir hedef olarak ele alınacaktır. Uygulanıp gerçek kullanıcı tarafından test edilmeden mevcut davranış gibi anlatılmayacaktır.
+
+### 12.2. Ekran görüntüsüyle gerçek kullanıcı doğrulaması
+
+- Asistan, kullanıcının Windows masaüstünü bu sohbet içinde sürekli ve kendiliğinden canlı izleyemez.
+- Görsel kontrol için kullanıcı her ilgili sürüm/arayüz değişikliğinden sonra uygulamanın ekran görüntüsünü sohbete yükler.
+- Tercih edilen görüntü, DUYRA penceresinin tamamını; pencere boyutu, metinler, gezinme ve durum çubuğu görünecek şekilde içermelidir. Yerleşim sorunu şüphesinde tam ekran görüntüsü de eklenebilir.
+- Görüntü, kod/CI kontrolünün yerine geçmez; otomatik denetimden sonra gerçek kullanıcı arayüzü kabul testinin kanıtıdır.
+- Delil içeriği, kişisel bilgiler veya gizli dosya yolları içeren görüntüler paylaşılmamalıdır.
+- Ekran görüntüleri varsayılan olarak depoya eklenmez. Yalnızca otomatik görsel regresyon testi için açıkça gerekli ve temizlenmiş bir örnek olduğunda değerlendirilir.
+- Görsel incelemede tespit edilen her sorun önce mevcut hedefin parçası mı diye değerlendirilir; yeni fikir olması tek başına kapsamı genişletmez.
+
