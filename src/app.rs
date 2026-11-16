@@ -1,39 +1,34 @@
 use eframe::egui::{self, Color32, CornerRadius, RichText, Sense, Stroke, Vec2};
 
-#[derive(Default)]
-pub struct DuyraApp;
+pub fn show(root_ui: &mut egui::Ui) {
+    root_ui.ctx().set_visuals(egui::Visuals::dark());
 
-impl eframe::App for DuyraApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        ctx.set_visuals(egui::Visuals::dark());
+    egui::CentralPanel::default()
+        .frame(egui::Frame::new().fill(Color32::from_rgb(15, 23, 31)))
+        .show(root_ui, |ui| {
+            let available_height = ui.available_height();
 
-        egui::CentralPanel::default()
-            .frame(egui::Frame::new().fill(Color32::from_rgb(15, 23, 31)))
-            .show(ctx, |ui| {
-                let available_height = ui.available_height();
+            ui.vertical_centered(|ui| {
+                ui.add_space(((available_height - 190.0).max(0.0)) * 0.48);
 
-                ui.vertical_centered(|ui| {
-                    ui.add_space(((available_height - 190.0).max(0.0)) * 0.48);
+                draw_logo(ui);
 
-                    draw_logo(ui);
+                ui.add_space(22.0);
+                ui.label(
+                    RichText::new("DUYRA")
+                        .size(34.0)
+                        .strong()
+                        .color(Color32::from_rgb(239, 246, 249)),
+                );
 
-                    ui.add_space(22.0);
-                    ui.label(
-                        RichText::new("DUYRA")
-                            .size(34.0)
-                            .strong()
-                            .color(Color32::from_rgb(239, 246, 249)),
-                    );
-
-                    ui.add_space(9.0);
-                    ui.label(
-                        RichText::new(format!("v{}", env!("CARGO_PKG_VERSION")))
-                            .size(14.0)
-                            .color(Color32::from_rgb(157, 177, 189)),
-                    );
-                });
+                ui.add_space(9.0);
+                ui.label(
+                    RichText::new(format!("v{}", env!("CARGO_PKG_VERSION")))
+                        .size(14.0)
+                        .color(Color32::from_rgb(157, 177, 189)),
+                );
             });
-    }
+        });
 }
 
 fn draw_logo(ui: &mut egui::Ui) {
