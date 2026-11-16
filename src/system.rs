@@ -86,7 +86,10 @@ mod windows {
             return None;
         }
 
-        let end = buffer.iter().position(|unit| *unit == 0).unwrap_or(buffer.len());
+        let end = buffer
+            .iter()
+            .position(|unit| *unit == 0)
+            .unwrap_or(buffer.len());
         let name = String::from_utf16_lossy(&buffer[..end]);
         let name = name.trim().to_owned();
 
@@ -123,32 +126,22 @@ mod windows {
             };
 
             let found = unsafe {
-                SetupDiEnumDeviceInfo(
-                    device_info_set,
-                    member_index,
-                    &mut device_info_data,
-                )
+                SetupDiEnumDeviceInfo(device_info_set, member_index, &mut device_info_data)
             };
 
             if found == 0 {
                 break;
             }
 
-            let name = read_device_name(
-                device_info_set,
-                &mut device_info_data,
-                SPDRP_FRIENDLYNAME,
-            )
-            .or_else(|| {
-                read_device_name(
-                    device_info_set,
-                    &mut device_info_data,
-                    SPDRP_DEVICEDESC,
-                )
-            });
+            let name = read_device_name(device_info_set, &mut device_info_data, SPDRP_FRIENDLYNAME)
+                .or_else(|| {
+                    read_device_name(device_info_set, &mut device_info_data, SPDRP_DEVICEDESC)
+                });
 
             if let Some(name) = name
-                && !adapters.iter().any(|existing: &String| existing.eq_ignore_ascii_case(&name))
+                && !adapters
+                    .iter()
+                    .any(|existing: &String| existing.eq_ignore_ascii_case(&name))
             {
                 adapters.push(name);
             }
