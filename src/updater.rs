@@ -7,7 +7,7 @@ const UPDATE_VERIFYING_KEY: self_update::VerifyingKey = [
     0x13, 0xa6, 0xde, 0x31, 0x45, 0xec, 0x77, 0x54, 0x93, 0xab, 0x63, 0x91, 0x3f, 0x2f, 0x18, 0x73,
 ];
 
-/// Güncelleme denetimini arka planda başlatır.
+/// Yeni sürümü kullanıcıdan ayrıca indirme istemeden arka planda denetler.
 /// Ağ veya yayın hatası uygulamanın açılmasını engellemez.
 pub fn check_on_startup() {
     #[cfg(target_os = "windows")]
