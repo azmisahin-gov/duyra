@@ -1,8 +1,6 @@
 use std::time::Duration;
 
-use eframe::egui::{
-    self, Align, Color32, CornerRadius, Layout, RichText, Sense, Stroke, Vec2,
-};
+use eframe::egui::{self, Align, Color32, CornerRadius, Layout, RichText, Sense, Stroke, Vec2};
 
 use crate::updater::{self, SharedUpdateStatus, UpdateSnapshot};
 
