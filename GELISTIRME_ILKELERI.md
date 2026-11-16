@@ -36,6 +36,13 @@ Otomatik güncelleme ayrı bir altyapı işi olarak değil, kullanıcı deneyimi
 
 **Yayın kontrol listesi:** kod denetimi → Windows derlemesi → imzalı paketi doğrulama → Release → önceki sürümden gerçek güncelleme → yeni sürüm numarasını doğrulama.
 
+## Tanılama ve gizlilik
+
+- Güncelleme hataları Windows kullanıcı uygulama verisi altındaki DUYRA/logs/duyra.log dosyasına yazılır; dosya boyutu sınırlandırılır.
+- Günlükler ve tanılama bilgileri hiçbir zaman kendiliğinden ağa veya GitHub'a gönderilmez.
+- Kullanıcı isterse uygulama içinden günlük klasörünü açabilir veya kişisel klasör yolları ayıklanmış tanılama özetini kopyalayabilir.
+- Tam günlük dosyası paylaşılmadan önce kullanıcı tarafından incelenmelidir. Delil dosyaları, kayıt içerikleri ve hassas dosya yolları destek kaydına eklenmemelidir.
+
 ## Kapsamı küçük tutma
 
 - Yeni özellik başına ayrı bir Release ve kısa sürüm notu.

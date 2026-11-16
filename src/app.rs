@@ -1,9 +1,12 @@
 use eframe::egui::{self, Color32, CornerRadius, RichText, Sense, Stroke, Vec2};
 
+use crate::updater::{self, SharedUpdateStatus, UpdateSnapshot};
+
 pub fn show(
     root_ui: &mut egui::Ui,
     graphics_info: Option<&(String, String)>,
     graphics_adapters: &[String],
+    update_status: &SharedUpdateStatus,
 ) {
     root_ui.ctx().set_visuals(egui::Visuals::dark());
 
@@ -13,11 +16,11 @@ pub fn show(
             let available_height = ui.available_height();
 
             ui.vertical_centered(|ui| {
-                ui.add_space(((available_height - 280.0).max(0.0)) * 0.40);
+                ui.add_space(((available_height - 390.0).max(0.0)) * 0.20);
 
                 draw_logo(ui);
 
-                ui.add_space(18.0);
+                ui.add_space(14.0);
                 ui.label(
                     RichText::new("DUYRA")
                         .size(34.0)
@@ -25,15 +28,18 @@ pub fn show(
                         .color(Color32::from_rgb(239, 246, 249)),
                 );
 
-                ui.add_space(8.0);
+                ui.add_space(6.0);
                 ui.label(
                     RichText::new(format!("v{}", env!("CARGO_PKG_VERSION")))
                         .size(14.0)
                         .color(Color32::from_rgb(157, 177, 189)),
                 );
 
-                ui.add_space(24.0);
+                ui.add_space(18.0);
                 draw_graphics_indicator(ui, graphics_info, graphics_adapters);
+
+                ui.add_space(14.0);
+                draw_update_status(ui, update_status);
             });
         });
 }
@@ -153,6 +159,66 @@ fn draw_graphics_indicator(
     )
     .response
     .on_hover_text(
-        "Grafik birimleri Windows aygıt listesinden okunur.          'Ekranı çizen' satırı DUYRA'nın mevcut grafik bağlamını gösterir.          Bu liste ses çözümleme için GPU hızlandırma desteğini kanıtlamaz.",
+        "Grafik birimleri Windows aygıt listesinden okunur. 'Ekranı çizen' satırı DUYRA'nın mevcut grafik bağlamını gösterir. Bu liste ses çözümleme için GPU hızlandırma desteğini kanıtlamaz.",
     );
+}
+
+fn draw_update_status(ui: &mut egui::Ui, update_status: &SharedUpdateStatus) {
+    let snapshot = update_status
+        .lock()
+        .map(|status| status.clone())
+        .unwrap_or_else(|_| UpdateSnapshot {
+            current_version: env!("CARGO_PKG_VERSION").to_owned(),
+            stage: "durum okunamadı".to_owned(),
+            message: "Güncelleme durumu okunamadı.".to_owned(),
+            target_version: None,
+            error: Some("Güncelleme durumu kilitlenmiş.".to_owned()),
+        });
+
+    ui.set_max_width(520.0);
+    ui.separator();
+
+    ui.horizontal(|ui| {
+        if snapshot.error.is_none()
+            && !matches!(snapshot.stage.as_str(), "güncel" | "yeniden_başlatma")
+        {
+            ui.spinner();
+        } else if snapshot.error.is_some() {
+            ui.label(RichText::new("!").strong().color(Color32::from_rgb(235, 166, 96)));
+        } else {
+            ui.label(RichText::new("✓").strong().color(Color32::from_rgb(112, 194, 151)));
+        }
+
+        ui.label(
+            RichText::new(&snapshot.message)
+                .size(12.0)
+                .color(Color32::from_rgb(190, 207, 216)),
+        );
+    });
+
+    if let Some(error) = snapshot.error.as_deref() {
+        ui.add_space(4.0);
+        ui.label(
+            RichText::new(error)
+                .size(10.0)
+                .color(Color32::from_rgb(235, 166, 96)),
+        );
+        ui.add_space(6.0);
+        ui.horizontal(|ui| {
+            if ui.small_button("Günlük klasörünü aç").clicked()
+                && let Err(error) = updater::open_log_folder()
+            {
+                ui.ctx().copy_text(format!("Günlük klasörü açılamadı: {error}"));
+            }
+
+            if ui.small_button("Tanılama özetini kopyala").clicked() {
+                ui.ctx().copy_text(updater::support_summary(&snapshot));
+            }
+        });
+        ui.label(
+            RichText::new("Ayrıntılı günlük yalnızca bu bilgisayara kaydedilir; otomatik olarak gönderilmez.")
+                .size(10.0)
+                .color(Color32::from_rgb(135, 155, 166)),
+        );
+    }
 }
