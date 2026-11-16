@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101820">
+  <meta name="description" content="DUYRA — Bilirkişi çalışma asistanı. Windows için indir, bir kez kur ve imzalı güncellemeleri uygulama içinden al.">
+  <title>DUYRA — Bilirkişi Çalışma Asistanı</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0d151d;--panel:#15232d;--text:#edf4f7;--muted:#a7bac5;--line:#2a414e;--accent:#83c6d8;--accentText:#0d2028}
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(ellipse at 50% -20%,#234454 0,transparent 48%),var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+    a{color:var(--accent)}
+    .wrap{width:min(920px,calc(100% - 36px));margin:0 auto}
+    header{padding:26px 0;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+    .brand{display:flex;gap:12px;align-items:center;text-decoration:none;color:var(--text);font-weight:750;letter-spacing:.12em}
+    .mark{width:40px;height:40px;border-radius:12px;background:#254454;display:grid;place-items:center}
+    .toplink{color:var(--muted);font-size:14px;text-decoration:none}
+    main{padding:82px 0 64px}
+    .hero{text-align:center;max-width:710px;margin:0 auto}
+    .hero .mark{width:84px;height:84px;border-radius:24px;margin:0 auto 23px}
+    h1{font-size:clamp(42px,7vw,66px);line-height:1.04;letter-spacing:.13em;margin:0 0 14px}
+    .subtitle{color:var(--muted);font-size:19px;margin:0 auto 28px;max-width:620px}
+    .version{display:inline-flex;gap:9px;align-items:center;border:1px solid var(--line);background:#172630;padding:7px 13px;border-radius:999px;color:#d7e5eb;font-size:13px;margin-bottom:26px}
+    .dot{width:7px;height:7px;border-radius:50%;background:#83c6d8;display:inline-block}
+    .actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:12px 0 17px}
+    .button{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:0 22px;border-radius:13px;text-decoration:none;font-weight:700;border:1px solid var(--line);transition:transform .15s ease,background .15s ease}
+    .button:hover{transform:translateY(-1px)}
+    .primary{background:var(--accent);color:var(--accentText);border-color:var(--accent)}
+    .secondary{background:var(--panel);color:var(--text)}
+    .hint{font-size:13px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:64px 0 0}
+    .card{background:linear-gradient(160deg,#192b36,#13202a);border:1px solid var(--line);border-radius:17px;padding:21px}
+    .card h2{font-size:16px;margin:0 0 7px}
+    .card p{font-size:14px;color:var(--muted);margin:0}
+    .section{border-top:1px solid var(--line);padding:30px 0}
+    .section h2{font-size:18px;margin:0 0 9px}
+    .section p{color:var(--muted);margin:0}
+    .release{white-space:pre-wrap;color:var(--muted);font-size:14px;max-height:190px;overflow:auto}
+    footer{padding:25px 0 42px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+    @media(max-width:700px){main{padding-top:58px}.grid{grid-template-columns:1fr;margin-top:42px}header{padding:18px 0}.toplink{display:none}.subtitle{font-size:17px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="./" aria-label="DUYRA ana sayfa">
+        <span class="mark" aria-hidden="true">
+          <svg width="27" height="27" viewBox="0 0 48 48" fill="none">
+            <g stroke="#eef7fa" stroke-width="3.6" stroke-linecap="round">
+              <path d="M7 20v8M16 14v20M25 7v34M34 13v22M43 19v10"/>
+            </g>
+          </svg>
+        </span>
+        <span>DUYRA</span>
+      </a>
+      <a class="toplink" href="https://github.com/azmisahin-gov/duyra">Kaynak kodu ve sürümler</a>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="mark" aria-hidden="true">
+          <svg width="54" height="54" viewBox="0 0 48 48" fill="none">
+            <g stroke="#eef7fa" stroke-width="3.2" stroke-linecap="round">
+              <path d="M7 20v8M16 14v20M25 7v34M34 13v22M43 19v10"/>
+            </g>
+          </svg>
+        </div>
+        <h1>DUYRA</h1>
+        <p class="subtitle">Bilirkişi çalışma asistanı.<br>Ses materyalinden kontrollü deşifreye giden işi kolaylaştırmak için tasarlanıyor.</p>
+        <div class="version"><span class="dot"></span><span id="version">Son sürüm bilgisi alınıyor…</span></div>
+        <div class="actions">
+          <a id="download" class="button primary" href="https://github.com/azmisahin-gov/duyra/releases/latest/download/duyra-windows-x86_64.exe">Windows için indir</a>
+          <a id="notes-link" class="button secondary" href="https://github.com/azmisahin-gov/duyra/releases/latest">Sürüm notları</a>
+        </div>
+        <p class="hint">Windows 10/11 · 64-bit · Uygulamayı bir kez indirmeniz yeterli</p>
+      </section>
+
+      <section class="grid" aria-label="DUYRA temel özellikleri">
+        <article class="card">
+          <h2>Bir kez indir</h2>
+          <p>DUYRA'yı bilgisayarına al. Her yeni sürüm için web sayfasından tekrar indirme yapman gerekmesin.</p>
+        </article>
+        <article class="card">
+          <h2>Otomatik güncelle</h2>
+          <p>Uygulama açılışında yeni sürümü kontrol eder. İmzalı paket doğrulanınca günceller ve yeniden açılır.</p>
+        </article>
+        <article class="card">
+          <h2>Yerel masaüstü</h2>
+          <p>DUYRA, Rust ve egui ile geliştirilir. Uygulamanın içinde web sayfası veya tarayıcı arayüzü yoktur.</p>
+        </article>
+      </section>
+
+      <section class="section" style="margin-top:38px">
+        <h2>Son sürümün notları</h2>
+        <div id="release-notes" class="release">Sürüm notları yükleniyor…</div>
+      </section>
+
+      <section class="section">
+        <h2>Güncelleme nasıl çalışır?</h2>
+        <p>DUYRA açıldığında GitHub Releases'i arka planda kontrol eder. Yeni sürüm paketi imza ve bütünlük denetiminden geçmeden kurulmaz. İnternet yoksa veya denetim başarısızsa mevcut sürüm açılmaya devam eder.</p>
+      </section>
+    </main>
+
+    <footer>
+      <span>DUYRA · Türkçe bilirkişi çalışma asistanı</span>
+      <span><a href="https://github.com/azmisahin-gov/duyra">GitHub deposu</a> · <a href="https://github.com/azmisahin-gov/duyra/releases">Tüm sürümler</a></span>
+    </footer>
+  </div>
+
+  <script>
+    const repoApi = "https://api.github.com/repos/azmisahin-gov/duyra";
+    const versionNode = document.getElementById("version");
+    const downloadNode = document.getElementById("download");
+    const notesLink = document.getElementById("notes-link");
+    const notesNode = document.getElementById("release-notes");
+
+    async function loadLatestRelease() {
+      try {
+        const response = await fetch(repoApi + "/releases/latest", {
+          headers: { "Accept": "application/vnd.github+json" },
+          cache: "no-store"
+        });
+        if (!response.ok) throw new Error("Sürüm bilgisi alınamadı.");
+        const release = await response.json();
+
+        versionNode.textContent = release.tag_name + " · " +
+          new Date(release.published_at).toLocaleDateString("tr-TR");
+
+        const exe = (release.assets || []).find(asset =>
+          asset.name === "duyra-windows-x86_64.exe"
+        );
+        if (exe && exe.browser_download_url.startsWith("https://github.com/")) {
+          downloadNode.href = exe.browser_download_url;
+        }
+
+        if (release.html_url) notesLink.href = release.html_url;
+        notesNode.textContent = release.body || "Bu sürüm için ayrıca bir not yayımlanmadı.";
+      } catch (_error) {
+        versionNode.textContent = "En son sürümü GitHub'da görüntüle";
+        notesNode.textContent = "Sürüm bilgisine şu anda ulaşılamıyor. İndirme için GitHub Releases sayfasını kullanabilirsiniz.";
+      }
+    }
+
+    loadLatestRelease();
+  </script>
+</body>
+</html>
