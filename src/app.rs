@@ -67,7 +67,6 @@ impl WorkspaceView {
             Self::Settings => "DUYRA uygulama tercihleri ve sistem bilgileri.",
         }
     }
-
 }
 
 pub fn show(
