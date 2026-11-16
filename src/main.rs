@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod app;
+mod icon;
 mod system;
 mod updater;
 
@@ -13,6 +14,7 @@ fn main() -> eframe::Result {
     let native_options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
             .with_title("DUYRA")
+            .with_icon(icon::window_icon())
             .with_inner_size([720.0, 500.0])
             .with_min_inner_size([560.0, 420.0]),
         ..Default::default()

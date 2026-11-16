@@ -88,6 +88,39 @@ jobs:
         if: steps.version.outputs.release_needed == 'true'
         run: cargo build --release
 
+      - name: Windows dosya bilgilerini doğrula
+        if: steps.version.outputs.release_needed == 'true'
+        shell: pwsh
+        env:
+          EXPECTED_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $exe = "target/release/duyra.exe"
+          $info = (Get-Item $exe).VersionInfo
+
+          $checks = @(
+            @{ Name = "ProductName"; Actual = $info.ProductName; Expected = "DUYRA" }
+            @{ Name = "CompanyName"; Actual = $info.CompanyName; Expected = "DUYRA" }
+            @{ Name = "FileDescription"; Actual = $info.FileDescription; Expected = "DUYRA - Bilirkişi çalışma asistanı" }
+            @{ Name = "OriginalFilename"; Actual = $info.OriginalFilename; Expected = "duyra.exe" }
+            @{ Name = "LegalCopyright"; Actual = $info.LegalCopyright; Expected = "Telif hakkı © 2026 DUYRA. Tüm hakları saklıdır." }
+          )
+
+          foreach ($check in $checks) {
+            if ($check.Actual -ne $check.Expected) {
+              throw "Windows dosya bilgisi hatalı: $($check.Name). Beklenen: '$($check.Expected)', gelen: '$($check.Actual)'"
+            }
+            Write-Host "$($check.Name): $($check.Actual)"
+          }
+
+          if (-not $info.FileVersion.StartsWith($env:EXPECTED_VERSION)) {
+            throw "Dosya sürümü beklenen değerde değil: $($info.FileVersion)"
+          }
+          if (-not $info.ProductVersion.StartsWith($env:EXPECTED_VERSION)) {
+            throw "Ürün sürümü beklenen değerde değil: $($info.ProductVersion)"
+          }
+
+          Write-Host "Dosya sürümü: $($info.FileVersion)"
+          Write-Host "Ürün sürümü: $($info.ProductVersion)"
       - name: Güncelleme imzalama aracını kur
         if: steps.version.outputs.release_needed == 'true'
         run: cargo install zipsign --version 0.2.1 --locked
