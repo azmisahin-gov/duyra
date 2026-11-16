@@ -82,7 +82,6 @@ impl WorkspaceView {
             Self::Settings => "⚙",
         }
     }
-
 }
 
 pub fn show(
@@ -170,7 +169,11 @@ fn draw_sidebar(ui: &mut egui::Ui, selected_view: &mut WorkspaceView) {
                 ui.add_space(8.0);
                 ui.vertical(|ui| {
                     ui.label(RichText::new("DUYRA").size(19.0).strong().color(TEXT));
-                    ui.label(RichText::new("BİLİRKİŞİ ÇALIŞMA ALANI").size(8.5).color(MUTED));
+                    ui.label(
+                        RichText::new("BİLİRKİŞİ ÇALIŞMA ALANI")
+                            .size(8.5)
+                            .color(MUTED),
+                    );
                 });
             });
 
@@ -203,7 +206,11 @@ fn draw_sidebar(ui: &mut egui::Ui, selected_view: &mut WorkspaceView) {
                     .size(10.0)
                     .color(MUTED),
             );
-            ui.label(RichText::new("Yerel masaüstü uygulaması").size(9.0).color(MUTED));
+            ui.label(
+                RichText::new("Yerel masaüstü uygulaması")
+                    .size(9.0)
+                    .color(MUTED),
+            );
         });
 }
 
@@ -313,7 +320,12 @@ fn draw_overview(
         });
 
     ui.add_space(16.0);
-    ui.label(RichText::new("ÇALIŞMA ÖZETİ").size(10.0).strong().color(MUTED));
+    ui.label(
+        RichText::new("ÇALIŞMA ÖZETİ")
+            .size(10.0)
+            .strong()
+            .color(MUTED),
+    );
     ui.add_space(8.0);
     ui.columns(3, |columns| {
         draw_summary_card(&mut columns[0], "İncelemeler", "Henüz çalışma yok", "▣");
@@ -359,7 +371,12 @@ fn draw_recent_work_card(ui: &mut egui::Ui) {
         .corner_radius(CornerRadius::same(12))
         .inner_margin(egui::Margin::same(18))
         .show(ui, |ui| {
-            ui.label(RichText::new("SON ÇALIŞMALAR").size(10.0).strong().color(MUTED));
+            ui.label(
+                RichText::new("SON ÇALIŞMALAR")
+                    .size(10.0)
+                    .strong()
+                    .color(MUTED),
+            );
             ui.add_space(14.0);
             ui.horizontal(|ui| {
                 ui.label(RichText::new("▣").size(24.0).color(ACCENT));
@@ -371,9 +388,11 @@ fn draw_recent_work_card(ui: &mut egui::Ui) {
                             .color(TEXT),
                     );
                     ui.label(
-                        RichText::new("İnceleme oluşturma ve kayıt akışı sonraki geliştirme hedefidir.")
-                            .size(10.0)
-                            .color(MUTED),
+                        RichText::new(
+                            "İnceleme oluşturma ve kayıt akışı sonraki geliştirme hedefidir.",
+                        )
+                        .size(10.0)
+                        .color(MUTED),
                     );
                 });
             });
@@ -475,7 +494,10 @@ fn draw_status_bar(ui: &mut egui::Ui, update_status: &SharedUpdateStatus) {
         });
 
     let is_checking = snapshot.error.is_none()
-        && !matches!(snapshot.stage.as_str(), "güncel" | "yeniden_başlatma" | "desteklenmiyor");
+        && !matches!(
+            snapshot.stage.as_str(),
+            "güncel" | "yeniden_başlatma" | "desteklenmiyor"
+        );
     if is_checking {
         ui.ctx().request_repaint_after(Duration::from_millis(250));
     }
@@ -509,11 +531,13 @@ fn draw_status_bar(ui: &mut egui::Ui, update_status: &SharedUpdateStatus) {
                     "DUYRA güncel"
                 };
 
-                ui.label(
-                    RichText::new(status_text)
-                        .size(10.0)
-                        .color(if snapshot.error.is_some() { WARNING } else { MUTED }),
-                );
+                ui.label(RichText::new(status_text).size(10.0).color(
+                    if snapshot.error.is_some() {
+                        WARNING
+                    } else {
+                        MUTED
+                    },
+                ));
 
                 if snapshot.error.is_some() {
                     ui.add_space(8.0);
