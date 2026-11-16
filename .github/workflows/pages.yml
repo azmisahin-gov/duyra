@@ -3,8 +3,9 @@ name: DUYRA Web Sayfası
 on:
   push:
     branches: [main]
-  release:
-    types: [published]
+    paths:
+      - "docs/**"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:

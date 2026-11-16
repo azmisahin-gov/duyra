@@ -1,24 +1,33 @@
-name: Kod Denetimi
+name: DUYRA Kod Denetimi ve Sürüm Yayını
 
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "README.md"
+      - ".github/workflows/pages.yml"
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "README.md"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  denetim:
-    name: Windows x64 denetimi
+  windows:
+    name: Windows x64 denetimi ve yayını
     runs-on: windows-latest
 
     steps:
-      - name: Depoyu al
+      - name: Depoyu indir
         uses: actions/checkout@v4
 
-      - name: Rust stable araçlarını kur
+      - name: Rust araçlarını kur
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -34,3 +43,125 @@ jobs:
 
       - name: Testleri çalıştır
         run: cargo test
+
+      - name: Sürümü ve imzalama anahtarını kontrol et
+        id: version
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DUYRA_UPDATE_PRIVATE_KEY_BASE64: ${{ secrets.DUYRA_UPDATE_PRIVATE_KEY_BASE64 }}
+        shell: pwsh
+        run: |
+          $versionMatch = Select-String -Path Cargo.toml -Pattern '^version\s*=\s*"([^"]+)"' | Select-Object -First 1
+          if (-not $versionMatch) { throw "Cargo.toml içinde paket sürümü bulunamadı." }
+
+          $version = $versionMatch.Matches[0].Groups[1].Value
+          $tag = "v$version"
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+
+          $headers = @{
+            Accept = "application/vnd.github+json"
+            Authorization = "Bearer $env:GH_TOKEN"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+          $response = Invoke-WebRequest -Uri "https://api.github.com/repos/azmisahin-gov/duyra/releases/tags/$tag" -Headers $headers -SkipHttpErrorCheck
+
+          if ($response.StatusCode -eq 200) {
+            "release_needed=false" >> $env:GITHUB_OUTPUT
+            Write-Host "$tag zaten yayımlanmış. Yeni paket üretilmeyecek."
+          } elseif ($response.StatusCode -eq 404) {
+            if ([string]::IsNullOrWhiteSpace($env:DUYRA_UPDATE_PRIVATE_KEY_BASE64)) {
+              "release_needed=false" >> $env:GITHUB_OUTPUT
+              Write-Warning "DUYRA_UPDATE_PRIVATE_KEY_BASE64 sırrı tanımlı değil. Güvenli imzalama olmadan Release yayımlanmayacak."
+            } else {
+              "release_needed=true" >> $env:GITHUB_OUTPUT
+              Write-Host "$tag için imzalama anahtarı mevcut. Sürüm hazırlanacak."
+            }
+          } else {
+            throw "GitHub Releases kontrolü başarısız: HTTP $($response.StatusCode)"
+          }
+
+      - name: Windows x64 uygulamasını derle
+        if: steps.version.outputs.release_needed == 'true'
+        run: cargo build --release
+
+      - name: Güncelleme imzalama aracını kur
+        if: steps.version.outputs.release_needed == 'true'
+        run: cargo install zipsign --version 0.2.1 --locked
+
+      - name: İlk indirme ve imzalı güncelleme paketini hazırla
+        if: steps.version.outputs.release_needed == 'true'
+        env:
+          DUYRA_UPDATE_PRIVATE_KEY_BASE64: ${{ secrets.DUYRA_UPDATE_PRIVATE_KEY_BASE64 }}
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+
+          Copy-Item target/release/duyra.exe dist/duyra-windows-x86_64.exe
+          Copy-Item target/release/duyra.exe dist/duyra.exe
+
+          $updateArchive = "dist/duyra-windows-update-x86_64-pc-windows-msvc.zip"
+          Compress-Archive -Path dist/duyra.exe -DestinationPath $updateArchive -Force
+
+          $privateKeyPath = "dist/duyra-update-private.key"
+          $publicKeyPath = "dist/duyra-update-public.key"
+          $privateSeed = [byte[]]@()
+          $publicBytes = [byte[]]@()
+          $keyPairBytes = [byte[]]@()
+
+          try {
+            $privateSeed = [Convert]::FromBase64String($env:DUYRA_UPDATE_PRIVATE_KEY_BASE64)
+            if ($privateSeed.Length -ne 32) {
+              throw "Güncelleme özel anahtar tohumu 32 bayt olmalıdır."
+            }
+
+            $publicHex = (Get-Content "assets/update-public-key.hex" -Raw).Trim()
+            if ($publicHex.Length -ne 64) {
+              throw "Depodaki doğrulama açık anahtarı 64 onaltılık karakter olmalıdır."
+            }
+            $publicBytes = [Convert]::FromHexString($publicHex)
+
+            # zipsign, Ed25519 anahtar çiftini 32 bayt tohum + 32 bayt açık anahtar olarak okur.
+            $keyPairBytes = New-Object byte[] 64
+            [Array]::Copy($privateSeed, 0, $keyPairBytes, 0, 32)
+            [Array]::Copy($publicBytes, 0, $keyPairBytes, 32, 32)
+            [IO.File]::WriteAllBytes($privateKeyPath, $keyPairBytes)
+            [IO.File]::WriteAllBytes($publicKeyPath, $publicBytes)
+
+            zipsign sign zip $updateArchive $privateKeyPath
+            if ($LASTEXITCODE -ne 0) { throw "Güncelleme paketi imzalanamadı." }
+
+            zipsign verify zip $updateArchive $publicKeyPath
+            if ($LASTEXITCODE -ne 0) { throw "İmzalı güncelleme paketi doğrulanamadı." }
+          }
+          finally {
+            Remove-Item $privateKeyPath -Force -ErrorAction SilentlyContinue
+            Remove-Item $publicKeyPath -Force -ErrorAction SilentlyContinue
+            if ($privateSeed.Length -gt 0) { [Array]::Clear($privateSeed, 0, $privateSeed.Length) }
+            if ($publicBytes.Length -gt 0) { [Array]::Clear($publicBytes, 0, $publicBytes.Length) }
+            if ($keyPairBytes.Length -gt 0) { [Array]::Clear($keyPairBytes, 0, $keyPairBytes.Length) }
+          }
+
+          $exeHash = (Get-FileHash "dist/duyra-windows-x86_64.exe" -Algorithm SHA256).Hash.ToLower()
+          $zipHash = (Get-FileHash $updateArchive -Algorithm SHA256).Hash.ToLower()
+          @(
+            "$exeHash  duyra-windows-x86_64.exe"
+            "$zipHash  duyra-windows-update-x86_64-pc-windows-msvc.zip"
+          ) | Set-Content "dist/SHA256SUMS.txt" -Encoding ascii
+
+          @"
+          DUYRA ${{ steps.version.outputs.tag }}
+
+          Bu sürüm, Windows x64 için doğrudan çalıştırılabilir DUYRA uygulamasını ve uygulama içinden doğrulanarak kurulacak imzalı güncelleme paketini içerir.
+
+          Uygulamayı bir kez indirin. Sonraki sürümler DUYRA açıldığında arka planda kontrol edilir; imza ve bütünlük doğrulaması başarılı olursa otomatik uygulanır.
+          "@ | Set-Content "dist/RELEASE_NOTES.txt" -Encoding utf8
+
+      - name: DUYRA sürümünü GitHub Releases sayfasında yayımla
+        if: steps.version.outputs.release_needed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" dist/duyra-windows-x86_64.exe dist/duyra-windows-update-x86_64-pc-windows-msvc.zip dist/SHA256SUMS.txt --target "${{ github.sha }}" --title "DUYRA ${{ steps.version.outputs.tag }}" --notes-file dist/RELEASE_NOTES.txt

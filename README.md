@@ -41,11 +41,13 @@ cargo test
 
 Sürüm numarasının tek kaynağı `Cargo.toml` içindeki `package.version` alanıdır.
 
-## Sürüm yayımlama
+## Otomatik denetim ve yayın
 
-GitHub Actions, sürüm numarası değiştiğinde Windows x64 uygulamasını derler, test eder, güncelleme ZIP'ini özel anahtarla imzalar ve GitHub Releases'e yükler. İmzalama anahtarı kaynak depoya konmaz.
+Tek bir GitHub Actions iş akışı kod biçimini, Clippy denetimini ve testleri çalıştırır. Bu kontroller başarılı olduktan sonra `Cargo.toml` içindeki sürüm numarası henüz yayımlanmamışsa Windows x64 uygulamasını üretir, güncelleme paketini imzalar ve imzayı doğrular; ardından GitHub Releases'e yayımlar. Aynı sürüm zaten yayımlanmışsa yeni paket üretmez.
 
-Yayın için depo ayarlarında `DUYRA_UPDATE_PRIVATE_KEY_BASE64` adlı Actions Secret tanımlanmış olmalıdır. Secret bulunmazsa sürüm otomatik yayımlanmaz.
+Yayın için depo ayarlarında `DUYRA_UPDATE_PRIVATE_KEY_BASE64` adlı Actions Secret tanımlı olmalıdır. Özel anahtar kaynak depoya veya yayın paketine eklenmez.
+
+Web sayfası yalnızca `docs/` içeriği değiştiğinde yeniden yayımlanır. Sayfa, güncel sürüm numarasını ve sürüm notlarını GitHub Releases API'sinden canlı aldığı için her uygulama sürümünde ayrıca web sayfası dağıtımı gerekmez. Yeni bir özelliği web sayfasında tanıtmak için ilgili `docs/index.html` içeriğini güncellemek yeterlidir.
 
 ## Proje ilkesi
 
