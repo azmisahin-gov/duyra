@@ -28,9 +28,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          $match = Select-String -Path Cargo.toml -Pattern '^version\s*=\s*"([^"]+)"' | Select-Object -First 1
-          if (-not $match) { throw "Cargo.toml içinde paket sürümü bulunamadı." }
-          $version = $match.Matches.Groups[1].Value
+          $versionMatch = Select-String -Path Cargo.toml -Pattern '^version\s*=\s*"([^"]+)"' | Select-Object -First 1
+          if (-not $versionMatch) { throw "Cargo.toml içinde paket sürümü bulunamadı." }
+          $version = $versionMatch.Matches[0].Groups[1].Value
           $tag = "v$version"
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
