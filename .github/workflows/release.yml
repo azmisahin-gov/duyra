@@ -42,6 +42,7 @@ jobs:
           } else {
             "release_needed=true" >> $env:GITHUB_OUTPUT
             Write-Host "$tag henüz yok. Yeni sürüm hazırlanacak."
+            $global:LASTEXITCODE = 0
           }
 
       - name: Rust araçlarını kur
