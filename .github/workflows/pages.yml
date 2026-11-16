@@ -1,0 +1,41 @@
+name: DUYRA Web Sayfası
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: duyra-pages
+  cancel-in-progress: true
+
+jobs:
+  yayinla:
+    name: DUYRA sayfasını yayımla
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Depoyu indir
+        uses: actions/checkout@v4
+
+      - name: GitHub Pages ayarlarını hazırla
+        uses: actions/configure-pages@v5
+
+      - name: Web sayfası dosyalarını yükle
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ./docs
+
+      - name: GitHub Pages'e yayımla
+        id: deployment
+        uses: actions/deploy-pages@v4
