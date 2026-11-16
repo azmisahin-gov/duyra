@@ -1,22 +1,29 @@
 # DUYRA
 
-DUYRA, Rust ile geliştirilen yerel bir masaüstü uygulamasıdır.
+**DUYRA**, bilirkişinin ses materyalini güvenli ve yerel biçimde incelemesine yardımcı olmak üzere geliştirilen masaüstü uygulamasıdır.
 
-## İlk sürümün kapsamı
+## İndir ve çalıştır
 
-Şimdilik uygulama yalnızca ürün kimliğini gösterir:
+**[DUYRA'nın en son Windows sürümünü indir](https://github.com/azmisahin-gov/duyra/releases/latest)**
 
-- DUYRA logosu
-- Uygulama adı
-- Cargo.toml içinden alınan sürüm numarası
+GitHub Releases sayfasında:
 
-Ses işleme, deşifre, analiz, veri saklama ve rapor üretimi bu başlangıç sürümünün kapsamında değildir.
+- `duyra-windows-x86_64.exe`: İndirip doğrudan çalıştırılabilir uygulama.
+- `duyra-windows-x86_64.zip`: Uygulamanın ZIP paketi.
+- `SHA256SUMS.txt`: İndirilen EXE dosyasının SHA-256 özeti.
+
+İlk sürüm Windows x64 içindir. Kurulum sihirbazı gerektirmez. İndirilen EXE dosyasını açın. Windows, uygulama kod imzası henüz bulunmadığı için SmartScreen uyarısı gösterebilir.
+
+## İlk sürüm
+
+İlk sürüm yalnızca DUYRA logosunu, ürün adını ve sürüm numarasını gösterir. Ses işleme, deşifre, analiz, veri saklama ve rapor üretimi henüz bu sürümün kapsamında değildir.
 
 ## Teknoloji
 
 - Rust
 - egui / eframe
-- Yerel masaüstü arayüzü; Tauri, HTML, CSS veya JavaScript kullanılmaz.
+- Yerel masaüstü arayüzü
+- Tauri, HTML, CSS ve JavaScript kullanılmaz.
 
 ## Geliştirme
 
@@ -34,15 +41,13 @@ cargo clippy --all-targets -- -D warnings
 cargo test
 ```
 
-İlk yerel derleme `Cargo.lock` dosyasını oluşturur. Uygulama deposunda bu dosya sürüm kontrolüne eklenmelidir.
+Sürüm numarasının tek kaynağı `Cargo.toml` içindeki `package.version` alanıdır.
 
-## Sürümleme ve yayın
+## Yayın süreci
 
-Sürüm numarası tek kaynak olarak `Cargo.toml` içindeki `package.version` alanından okunur.
+`main` dalına yeni bir sürüm numarasıyla gönderim yapıldığında GitHub Actions uygulamayı Windows x64 için derler, test eder ve aynı sürüm daha önce yayımlanmamışsa GitHub Releases sayfasında otomatik yayımlar. Sürüm numarası değişmediyse yeni yayın oluşturulmaz.
 
-`v*` etiketi gönderildiğinde GitHub Actions Windows x64 derlemesini oluşturup ZIP paketini GitHub Release'e ekler.
-
-> Not: Bu ilk iskelette otomatik güncelleme kurulumu henüz etkin değildir. Otomatik güncelleme, imzalama anahtarı ve istemci tarafı imza doğrulaması birlikte yapılandırılıp test edildikten sonra açılacaktır. İmzasız paketler otomatik güncelleme yoluyla kurulmayacaktır.
+Otomatik uygulama güncellemesi henüz etkin değildir. İmzalı güncelleme mekanizması ve istemci tarafı imza doğrulaması tamamlanmadan güncelleme otomatik kurulmaz.
 
 ## Proje ilkesi
 
