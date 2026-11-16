@@ -49,6 +49,6 @@ Yayın için depo ayarlarında `DUYRA_UPDATE_PRIVATE_KEY_BASE64` adlı Actions S
 
 Web sayfası yalnızca `docs/` içeriği değiştiğinde yeniden yayımlanır. Sayfa, güncel sürüm numarasını ve sürüm notlarını GitHub Releases API'sinden canlı aldığı için her uygulama sürümünde ayrıca web sayfası dağıtımı gerekmez. Yeni bir özelliği web sayfasında tanıtmak için ilgili `docs/index.html` içeriğini güncellemek yeterlidir.
 
-## Proje ilkesi
+## Geliştirme ilkesi
 
-Bugün küçük bir ürün yapıyoruz. Yarın büyümesine izin verecek kadar düzenli, bugün geliştirmeyi zorlaştırmayacak kadar sade tutuyoruz.
+[DUYRA geliştirme ilkeleri](GELISTIRME_ILKELERI.md): Tek hedef seç, tamamla, doğrula, sonra yayımla. Gerçek kullanıcı testi başarılı olmadan sonraki hedefe geçme.
