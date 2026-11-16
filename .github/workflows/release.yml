@@ -35,14 +35,20 @@ jobs:
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
 
-          gh release view $tag *> $null
-          if ($LASTEXITCODE -eq 0) {
+          $headers = @{
+            Accept = "application/vnd.github+json"
+            Authorization = "Bearer $env:GH_TOKEN"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+          $response = Invoke-WebRequest -Uri "https://api.github.com/repos/azmisahin-gov/duyra/releases/tags/$tag" -Headers $headers -SkipHttpErrorCheck
+          if ($response.StatusCode -eq 200) {
             "release_needed=false" >> $env:GITHUB_OUTPUT
             Write-Host "$tag zaten yayımlanmış. Yeni sürüm oluşturulmayacak."
-          } else {
+          } elseif ($response.StatusCode -eq 404) {
             "release_needed=true" >> $env:GITHUB_OUTPUT
             Write-Host "$tag henüz yok. Yeni sürüm hazırlanacak."
-            $global:LASTEXITCODE = 0
+          } else {
+            throw "GitHub Releases kontrolü başarısız: HTTP $($response.StatusCode)"
           }
 
       - name: Rust araçlarını kur
