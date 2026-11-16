@@ -14,7 +14,30 @@ fn main() -> eframe::Result {
         ..Default::default()
     };
 
-    eframe::run_ui_native("DUYRA", native_options, |ui, _frame| {
-        app::show(ui);
+    let mut graphics_checked = false;
+    let mut graphics_info: Option<(String, String)> = None;
+
+    eframe::run_ui_native("DUYRA", native_options, move |ui, frame| {
+        // Grafik bilgisi, zaten uygulamanın çiziminde kullanılan OpenGL
+        // bağlamından bir kez okunur. Yeni bir GPU bağımlılığı eklenmez.
+        if !graphics_checked {
+            graphics_checked = true;
+            if let Some(gl) = frame.gl() {
+                let info = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| unsafe {
+                    (
+                        gl.get_parameter_string(0x1F01), // GL_RENDERER
+                        gl.get_parameter_string(0x1F00), // GL_VENDOR
+                    )
+                }));
+
+                if let Ok((renderer, vendor)) = info {
+                    if !renderer.trim().is_empty() {
+                        graphics_info = Some((renderer, vendor));
+                    }
+                }
+            }
+        }
+
+        app::show(ui, graphics_info.as_ref());
     })
 }
