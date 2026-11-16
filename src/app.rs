@@ -55,10 +55,7 @@ fn draw_logo(ui: &mut egui::Ui) {
     }
 }
 
-fn draw_graphics_indicator(
-    ui: &mut egui::Ui,
-    graphics_info: Option<&(String, String)>,
-) {
+fn draw_graphics_indicator(ui: &mut egui::Ui, graphics_info: Option<&(String, String)>) {
     ui.horizontal(|ui| {
         let (icon_rect, _response) = ui.allocate_exact_size(Vec2::splat(38.0), Sense::hover());
         let painter = ui.painter();
