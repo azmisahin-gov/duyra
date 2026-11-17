@@ -175,6 +175,15 @@ pub enum WritePolicyStatus {
     Unknown(String),
 }
 
+fn policy_status_from_value(value: Option<u32>) -> WritePolicyStatus {
+    match value {
+        Some(1) => WritePolicyStatus::Enabled,
+        Some(0) => WritePolicyStatus::Disabled,
+        Some(value) => WritePolicyStatus::UnexpectedValue(value),
+        None => WritePolicyStatus::NotConfigured,
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WriteProtectionSupport {
     Supported,
@@ -522,10 +531,7 @@ mod windows_write_protection {
 
     fn read_policy() -> WritePolicyStatus {
         match read_registry_dword(REMOVABLE_DISK_POLICY_KEY, "Deny_Write") {
-            Ok(Some(1)) => WritePolicyStatus::Enabled,
-            Ok(Some(0)) => WritePolicyStatus::Disabled,
-            Ok(Some(value)) => WritePolicyStatus::UnexpectedValue(value),
-            Ok(None) => WritePolicyStatus::NotConfigured,
+            Ok(value) => super::policy_status_from_value(value),
             Err(error) => WritePolicyStatus::Unknown(error),
         }
     }
@@ -638,15 +644,22 @@ mod write_protection_tests {
     }
 
     #[test]
-    fn policy_states_are_explicit_not_binary() {
-        assert_eq!(WritePolicyStatus::Enabled, WritePolicyStatus::Enabled);
+    fn policy_registry_values_map_to_clear_states() {
         assert_eq!(
-            WritePolicyStatus::NotConfigured,
+            policy_status_from_value(Some(1)),
+            WritePolicyStatus::Enabled
+        );
+        assert_eq!(
+            policy_status_from_value(Some(0)),
+            WritePolicyStatus::Disabled
+        );
+        assert_eq!(
+            policy_status_from_value(None),
             WritePolicyStatus::NotConfigured
         );
         assert_eq!(
-            WritePolicyStatus::UnexpectedValue(2),
-            WritePolicyStatus::UnexpectedValue(2)
+            policy_status_from_value(Some(7)),
+            WritePolicyStatus::UnexpectedValue(7)
         );
     }
 }
