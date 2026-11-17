@@ -135,6 +135,9 @@ Otomatik güncelleme için kabul testi:
 - Bu hedefte kontrol aralığı 6 saat olacak; yeni sürüm bulunduğunda kullanıcıya bildirim gösterilecek. Kurulum ancak "Şimdi güncelle" onayıyla başlayacak; "Daha sonra" güncellemeyi sonraki denetime erteleyecek.
 - Açık işler varken otomatik boşta-kalma kurulumunu belirlemek için henüz inceleme/işlem durum modeli bulunmadığından, bu sürüm sessiz kurulum yapmayacak. İş bittiğinde otomatik kurulum tercihi, aktif çalışma modeli geliştirildiğinde ayrı olarak ele alınacaktır.
 - Windows CI kontrolleri, testler ve derleme başarılı olmalı; v0.1.9 Release yayımlanmalıdır.
+- v0.1.9 için CI'nin biçim, Clippy, test, Windows x64 derleme, dosya bilgisi, imzalı paket üretimi ve Release adımlarının tamamı başarılı oldu (Actions run 43985862485).
+- Kullanıcı v0.1.8'den v0.1.9'a geçişi uygulamayı kapatıp yeniden açarak tamamladı; v0.1.9 ana ekranı gerçek kullanıcı görüntüsünde açıldı ve alt durum çubuğunda "DUYRA güncel" görüldü.
+- Bu geçiş eski v0.1.8 güncelleyicisinin açılışta otomatik kurulum davranışıyla yapıldı. v0.1.9'in yeni "Şimdi güncelle / Daha sonra" bildirim akışı henüz daha yeni bir sürüm yayımlanmadığı için kullanıcı ekranında denenmedi; sonraki gerçek sürümde ayrıca kabul testi yapılmalıdır. Sırf test için boş sürüm yayımlanmaz.
 - v0.1.8 hedefi doğrulandığı için bu güncelleyici hedefi başlamıştır; bu hedef doğrulanmadan CI ekran görüntüsü otomasyonu veya delil/deşifre özelliklerine geçilmez.
 
 ## 11. Kapsamı küçük tutma
