@@ -293,12 +293,12 @@ Bu, Issue #13'teki tek seferlik izole VM kabul testi tamamlandıktan sonra başl
 - Bu ilk aşamada fiziksel disk veya volume için `CreateFile` çağrısı yapılmaz; `DeviceIoControl` çalıştırılmaz; bölüm/volume bağlama, ayırma veya otomatik bağlama ayarı değiştirilmez; sektör, dosya sistemi veya dosya içeriği okunmaz/yazılmaz.
 - Sistem tarafından döndürülen her aygıt otomatik seçilmez. Birden fazla benzer aygıt varsa uygulama seçim yapmaz; bilirkişi adayın doğru kaynak olduğunu ayrıca onaylamadan ilerlenmez.
 - Seri numarası, PnP instance ID, volume kimliği, sürücü harfi ve tam aygıt yolu tanılama kayıtlarına yazılmaz. Gerekli geçici tanımlayıcıların arayüzde gösterilip gösterilmeyeceği ayrıca kararlaştırılır.
-- Windows'un aygıtı Removable/F​​ixed veya başka sınıfta sunması belirsizse sınıf tahmin edilmez; sonuç Bilinmiyor kalır.
+- Windows'un aygıtı çıkarılabilir/sabit disk veya başka sınıfta sunması belirsizse sınıf tahmin edilmez; sonuç Bilinmiyor kalır.
 
 **İkinci aşama — yazılabilirlik ve bağlama durumunu ayrı gözlemleme**
 
 - Windows'ta `IOCTL_DISK_IS_WRITABLE`, Microsoft belgelerinde disk yazılabilirliğini belirleyen bir `DeviceIoControl` isteği olarak tanımlanır. Bu sorgu bir aygıt tanıtıcısı gerektirdiğinden ilk PnP listeleme aşamasına eklenmez; gerçek aygıta erişim sınırı olarak ayrı değerlendirilir.
-- Sorgunun hata vermesi otomatik olarak salt okunur anlamına gelmez. Yalnızca açıkça yazma korumasını bildiren sonuç salt okunur gözlemine eşlenebilir; erişim reddi, desteklenmeyen istek, aygıt hatası ve diğer tüm hatalar Bilinmiyor/Doğrulanamadı kalır.
+- Sorgunun hata vermesi otomatik olarak salt okunur anlamına gelmez. Yalnızca açıkça yazma korumasını bildiren `ERROR_WRITE_PROTECT` gibi sonuç salt okunur gözlemine eşlenebilir; erişim reddi, desteklenmeyen istek, aygıt hatası ve diğer tüm hatalar Bilinmiyor/Doğrulanamadı kalır.
 - Linux'ta `blockdev --getro` / `BLKROGET` çekirdeğin blok aygıtı salt okunur bayrağını bildirir. Bu, donanımsal yazma engelleyici veya bütün yazma yolları için garanti değildir. Blok aygıtı bayrağı, dosya sisteminin mevcut bağlama seçeneklerinden ayrı raporlanmalıdır.
 - İlk uygulama hedefinde `blockdev --setro`, `blockdev --setrw`, `BLKROSET`, mount/remount/unmount veya otomatik bağlama ayarı değişikliği yapılmaz.
 - Önceden yazılabilir bağlanmış dosya sistemi, blok aygıtı bayrağından farklı bir durum gösterebilir. Bağlama durumu güvenilir ve salt okunur biçimde belirlenemiyorsa dosya içeriği açılmaz.
