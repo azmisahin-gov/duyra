@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[cfg(target_os = "windows")]
-use crate::system::{WritePolicyStatus, WriteProtectionSupport};
+use crate::system::{WritePolicyStatus, WriteProtectionSupport, windows_write_protection_summary};
 
 const BACKGROUND: Color32 = Color32::from_rgb(15, 23, 31);
 const SIDEBAR: Color32 = Color32::from_rgb(18, 30, 40);
@@ -820,6 +820,24 @@ fn draw_settings(ui: &mut egui::Ui, preflight: &WriteProtectionPreflight) {
                             ui.label(RichText::new(warning).size(10.0).color(WARNING));
                         }
                     }
+
+                    ui.add_space(14.0);
+                    if ui.button("Ön kontrol sonucunu kopyala").clicked() {
+                        ui.ctx()
+                            .copy_text(windows_write_protection_summary(status));
+                        ui.label(
+                            RichText::new("Ön kontrol özeti panoya kopyalama için hazırlandı.")
+                                .size(10.0)
+                                .color(SUCCESS),
+                        );
+                    }
+                    ui.label(
+                        RichText::new(
+                            "Özet yalnızca bu düğmeye bastığınızda panoya kopyalanır; dosyaya kaydedilmez veya gönderilmez.",
+                        )
+                        .size(10.0)
+                        .color(MUTED),
+                    );
                 }
                 #[cfg(not(target_os = "windows"))]
                 WriteProtectionPreflight::UnsupportedPlatform => {
