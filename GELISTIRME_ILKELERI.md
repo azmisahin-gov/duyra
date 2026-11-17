@@ -119,20 +119,22 @@ Otomatik güncelleme için kabul testi:
 
 **Yayın kontrol listesi:** kod denetimi → Windows derlemesi → imzalı paketi doğrulama → Release → önceki sürümden gerçek güncelleme → yeni sürüm numarasını doğrulama → kullanıcı kabulü.
 
-## 10. Şu anki hedef
+## 10. Son tamamlanan hedef ve sıradaki karar
 
-**Mevcut hedef: Windows CI üzerinde DUYRA ana ekranının otomatik görüntüsünü alıp inceleyebilmek.**
+**Tamamlanan hedef: CI üzerinden DUYRA ana ekranının otomatik görüntüsünü almak ve görüntüyü incelemek.**
 
-- v0.1.7 ana çalışma alanı yayımlandı; kullanıcı ekranında görülen simge ve alt durum çubuğu kusurları v0.1.8 ile düzeltildi ve 1920×1080 gerçek ekranda doğrulandı.
-- v0.1.8 → v0.1.9 güncellemesi gerçek kullanıcı bilgisayarında, uygulama kapatılıp yeniden açıldığında tamamlandı.
-- v0.1.9 güncelleyici değişikliği CI kontrollerinden geçti ve Release yayımlandı. Altı saatlik kontrol, kullanıcı onayıyla kurulum ve erteleme kodda bulunuyor.
-- v0.1.9'in yeni "Şimdi güncelle / Daha sonra" bildirimini kullanıcı ekranında doğrulamak için daha yeni bir gerçek sürüm gerekir. Sırf test için boş Release yayımlanmaz; bu kabul testi sonraki doğal sürümde yapılacaktır.
-- İlk Windows CI görsel denemesi Actions run 43987188203'te uygulamayı derledi; ancak uygulama pencere açılmadan `1` çıkış koduyla sonlandı. Oturum numarası `2` idi; tanı artifact'i 14285593012 yüklendi, fakat PNG üretilemedi.
-- İkinci deneme için yakalama betiğine standart çıktı/hata ve grafik bağdaştırıcısı tanılaması eklendi. Yeni deneme Actions run 43987622095 üzerinden izlenmektedir.
-- Görsel yakalama çalıştığı doğrulanana kadar bu otomasyon tamamlanmış sayılmaz.
-- Görüntü alınabilse bile bu, kullanıcının kendi bilgisayarındaki son görsel kabul testinin yerine geçmez. Kullanıcı bilgisayarı ile CI ortamının çözünürlüğü ve grafik sürücüsü farklı olabilir.
-- CI ekran yakalama yöntemi güvenilir değilse zorlanmaz; kullanıcıdan ekran görüntüsü alma yöntemi devam eder. Gerekirse etkileşimli Windows runner seçeneği ayrıca değerlendirilir.
-- Bu hedef doğrulanmadan yeni delil/deşifre özelliklerine geçilmez.
+- GitHub Actions üzerinde `.github/workflows/gorsel-denetim.yml` ile ayrı bir görsel denetim workflow'u kuruldu.
+- Windows hosted runner iki denemede de uygulamayı derledi; ancak sanal grafik aygıtı `Microsoft Hyper-V Video` olarak göründü ve `egui_glow` için gerekli OpenGL 2.0+ bağlamı oluşturulamadı. İkinci denemede stderr açıkça `OpenGL(PainterError("egui_glow requires opengl 2.0+."))` hatasını verdi. Windows ekran yakalama yolu bu nedenle zorlanmadı (Actions runs 43987188203 ve 43987622095).
+- İlk Linux denemesi `winit` platform özelliği etkin olmadığı için derlemede başarısız oldu (Actions run 43988044823). Üretim Cargo ayarını değiştirmeden yalnızca görsel deneme komutuna `eframe/x11` özelliği eklendi.
+- Son Linux denemesinde DUYRA, Xvfb sanal ekranında Mesa `llvmpipe` yazılım OpenGL çizicisiyle başarıyla derlendi ve açıldı; pencere bulundu ve PNG üretildi (Actions run 43988327972).
+- PNG, 1180×780 boyutundadır. Artifact kimliği `14286377159`, artifact adı `duyra-gorsel-denetim-linux-5b9e25578e3bce364781cda9de73cd1d56f524df`; GitHub Actions üzerinde 7 gün saklanır. Görüntü Release paketine veya web sitesine eklenmez.
+- Artifact indirildi ve gerçekten açılarak incelendi. Genel Bakış yerleşimi, gezinme, kartlar, metinler ve durum çubuğu görünür; görüntüde gerçek delil veya kullanıcı verisi yoktur.
+- Aynı commit'in normal Windows CI denetimi de başarılıdır (Actions run 43988327942).
+- Linux görseli, ortak egui arayüzü için otomatik erken regresyon kontrolüdür; Windows başlık çubuğu, Windows DPI/driver davranışı veya Windows'a özgü sistem bilgilerini kanıtlamaz. Windows sürümünün gerçek kullanıcı kabulü gerektiğinde kullanıcı ekran görüntüsüyle ayrıca doğrulanır.
+
+**Güncelleme kabul testi beklemede:** v0.1.9'un "Şimdi güncelle / Daha sonra" bildirimi, sonraki doğal Release yayımlandığında gerçek kullanıcı bilgisayarında sınanacaktır. Sırf test amacıyla boş Release çıkarılmaz.
+
+**Sıradaki ürün hedefi henüz başlatılmadı.** İlk açılış pencere konumunun ortalanması/son konumun hatırlanması gözlemi 12.4'te kayıtlıdır; sonraki hedef seçilirken dikkate alınacaktır.
 
 ## 11. Kapsamı küçük tutma
 
@@ -181,19 +183,18 @@ Bilinçli sınırlar:
 
 ### 12.3. CI üzerinden otomatik ekran görüntüsü alma
 
-**Aktif teknik deneme:** `.github/workflows/gorsel-denetim.yml` ve `scripts/ci-ekran-goruntusu.ps1` eklendi. İlk çalışma uygulama pencere açmadan çıktığı için başarısız oldu; ikinci çalışmada stderr ve grafik aygıtı da kaydediliyor (Actions run 43987622095).
+**Teknik deneme tamamlandı ve doğrulandı.**
 
-Hedeflenen yaklaşım:
-
-- Windows uygulaması derlendikten sonra CI ortamında DUYRA başlatılır.
-- Uygulama penceresi açıldıktan ve arayüz kararlı hâle geldikten sonra Genel Bakış ekranının görüntüsü alınır.
-- Görüntü, GitHub Actions çalışma kaydına bağlı bir artifact olarak saklanır; Release paketine ve web sayfasına eklenmez.
-- İlk aşamada yalnızca uygulamanın açılması ve ana ekranın temel yerleşimi kontrol edilir. Sonraki ekranlar geliştikçe kapsama alınır.
-- Ekran görüntüsünün CI ortamından güvenilir biçimde alınabildiği, indirilebildiği ve mühendis/inceleme sürecinde gerçekten görüntülenebildiği küçük bir teknik denemeyle doğrulanır.
-- CI ortamı grafik uygulamayı güvenilir biçimde başlatamıyor veya görüntüyü inceleme sürecine sunamıyorsa bu yöntem zorlanmaz; manuel ekran görüntüsü gönderme yöntemi devam eder.
-- Görüntüde kullanıcı verisi, gerçek delil veya kişisel dosya yolu bulunmamalıdır. Test verisi sabit ve yapay olmalıdır.
-
-Bu otomasyon, gerçek kullanıcının bilgisayarındaki görünümün birebir garantisi değildir. Sadece tekrarlanabilir bir erken görsel regresyon kontrolüdür; kullanıcı kabul testinin yerine geçmez.
+- Workflow: `.github/workflows/gorsel-denetim.yml`
+- Yakalama betiği: `scripts/ci-ekran-goruntusu.sh`
+- Çalışma ortamı: `ubuntu-latest`, Xvfb ve Mesa `llvmpipe` yazılım OpenGL çizicisi.
+- Derleme komutu, yalnızca Linux CI için `cargo build --release --features eframe/x11` şeklindedir. Üretim `Cargo.toml` ayarlarına veya Windows uygulama derlemesine dokunulmaz.
+- Görünür DUYRA penceresi `xdotool` ile bulunur; ImageMagick `import` komutuyla pencere PNG'si alınır.
+- Artifact, Actions çalışma kaydına yüklenir ve 7 gün saklanır. Release paketlerine veya web sitesine eklenmez.
+- Son başarılı örnek Actions run 43988327972, artifact 14286377159'dur. PNG 1180×780 boyutunda indirildi ve görsel olarak incelendi.
+- Windows hosted runner'da ekran yakalama denenmiş, fakat Microsoft Hyper-V Video sanal bağdaştırıcısı OpenGL 2.0+ sunmadığından pencere başlatılamamıştır. Bu nedenle otomatik görsel ön kontrolü Linux'ta yapılır.
+- Linux görüntüsü ana arayüzün erken regresyon kontrolüdür. Windows'a özgü pencere süslemesi, DPI, GPU ve yerel sistem metinleri için kullanıcı kabul testi yerine geçmez.
+- Test penceresinde gerçek delil veya kullanıcı verisi bulunmaz.
 
 ### 12.4. İlk açılış pencere konumu
 
