@@ -84,7 +84,7 @@ impl ExaminationStore {
         }
 
         Some(format!(
-            "{} inceleme kaydı okunamadı. Kayıt dosyaları silinmedi; günlük klasörünü kontrol edin.",
+            "{} inceleme kaydı okunamadı. Sorunlu dosyalar silinmedi; kayıt klasöründe korundu.",
             self.load_warnings.len()
         ))
     }
