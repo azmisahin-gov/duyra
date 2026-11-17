@@ -28,7 +28,7 @@ pub struct ExaminationUiState {
 }
 
 impl ExaminationUiState {
-    pub fn new() -> Self {
+    pub fn load() -> Self {
         let examinations = ExaminationStore::open_default();
         let examination_notice = examinations.notice();
 
