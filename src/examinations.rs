@@ -298,7 +298,10 @@ mod tests {
         assert!(reopened.storage_error().is_none());
         assert_eq!(reopened.records().len(), 1);
         assert_eq!(reopened.records()[0], created);
-        assert_eq!(reopened.find(&created.id).map(|record| &record.number), Some(&created.number));
+        assert_eq!(
+            reopened.find(&created.id).map(|record| &record.number),
+            Some(&created.number)
+        );
 
         fs::remove_dir_all(directory).expect("Test kayıt klasörü temizlenebilmeli.");
     }
