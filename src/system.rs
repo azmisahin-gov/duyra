@@ -194,7 +194,7 @@ pub enum WriteProtectionSupport {
     Unknown,
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", test))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WindowsWriteProtectionPreflight {
     pub product_name: Option<String>,
@@ -204,6 +204,63 @@ pub struct WindowsWriteProtectionPreflight {
     pub support: WriteProtectionSupport,
     pub computer_policy: WritePolicyStatus,
     pub read_warnings: Vec<String>,
+}
+
+#[cfg(any(target_os = "windows", test))]
+pub fn windows_write_protection_summary(status: &WindowsWriteProtectionPreflight) -> String {
+    let elevated = match status.process_is_elevated {
+        Some(true) => "Yükseltilmiş (Yönetici)",
+        Some(false) => "Yükseltilmemiş",
+        None => "Belirlenemedi",
+    };
+
+    let support = match &status.support {
+        WriteProtectionSupport::Supported => "Destek listesiyle eşleşiyor".to_owned(),
+        WriteProtectionSupport::UnsupportedEdition(edition) => {
+            format!("Desteklenmeyen edisyon ({edition})")
+        }
+        WriteProtectionSupport::UnsupportedBuild(build) => {
+            format!("Desteklenmeyen derleme ({build})")
+        }
+        WriteProtectionSupport::Unknown => "Belirlenemedi".to_owned(),
+    };
+
+    let policy = match &status.computer_policy {
+        WritePolicyStatus::Enabled => "Etkin görünüyor (1)".to_owned(),
+        WritePolicyStatus::Disabled => "Devre dışı (0)".to_owned(),
+        WritePolicyStatus::NotConfigured => "Tanımlı değil".to_owned(),
+        WritePolicyStatus::UnexpectedValue(value) => {
+            format!("Beklenmeyen değer ({value})")
+        }
+        WritePolicyStatus::Unknown(_) => "Okunamadı".to_owned(),
+    };
+
+    format!(
+        concat!(
+            "DUYRA - Windows Yazma Koruması Ön Kontrol Özeti\n",
+            "Windows: {}\n",
+            "Edisyon: {}\n",
+            "Derleme: {}\n",
+            "DUYRA yönetici yetkisi: {}\n",
+            "İşletim sistemi destek durumu: {}\n",
+            "Bilgisayar Grup İlkesi (HKLM Deny_Write): {}\n",
+            "Ek okuma uyarısı sayısı: {}\n",
+            "\n",
+            "Not: Bu sonuç yalnızca bilgisayar düzeyindeki HKLM ilke kaydını gösterir.\n",
+            "Tek başına USB aygıtının fiilen salt okunur olduğunu kanıtlamaz.\n",
+            "Bu ön kontrol sistem ayarlarını değiştirmez ve USB aygıtını açmaz."
+        ),
+        status.product_name.as_deref().unwrap_or("Okunamadı"),
+        status.edition_id.as_deref().unwrap_or("Okunamadı"),
+        status
+            .build_number
+            .map(|build| build.to_string())
+            .unwrap_or_else(|| "Okunamadı".to_owned()),
+        elevated,
+        support,
+        policy,
+        status.read_warnings.len(),
+    )
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -629,6 +686,64 @@ mod write_protection_tests {
             assess_write_protection_support(None, Some(26_100)),
             WriteProtectionSupport::Unknown
         );
+    }
+
+    #[test]
+    fn windows_preflight_summary_contains_status_without_raw_error_details() {
+        let status = super::WindowsWriteProtectionPreflight {
+            product_name: Some("Windows 10 Pro".to_owned()),
+            edition_id: Some("Professional".to_owned()),
+            build_number: Some(26_300),
+            process_is_elevated: Some(true),
+            support: WriteProtectionSupport::Supported,
+            computer_policy: WritePolicyStatus::Unknown(
+                "Registry read failed: C:\\\\Users\\\\Private".to_owned(),
+            ),
+            read_warnings: vec!["Sensitive path: C:\\\\Users\\\\Private".to_owned()],
+        };
+
+        let summary = super::windows_write_protection_summary(&status);
+
+        assert!(summary.contains("Windows: Windows 10 Pro"));
+        assert!(summary.lines().count() >= 11);
+        assert!(summary.contains("Edisyon: Professional"));
+        assert!(summary.contains("Derleme: 26300"));
+        assert!(summary.contains("DUYRA yönetici yetkisi: Yükseltilmiş (Yönetici)"));
+        assert!(summary.contains("Destek listesiyle eşleşiyor"));
+        assert!(summary.contains("HKLM Deny_Write): Okunamadı"));
+        assert!(summary.contains("Ek okuma uyarısı sayısı: 1"));
+        assert!(summary.contains("fiilen salt okunur olduğunu kanıtlamaz"));
+        assert!(!summary.contains("Registry read failed"));
+        assert!(!summary.contains("Sensitive path"));
+        assert!(!summary.contains("C:\\\\Users"));
+    }
+
+    #[test]
+    fn windows_preflight_summary_distinguishes_policy_and_elevation_states() {
+        let cases = [
+            (WritePolicyStatus::Enabled, "Etkin görünüyor (1)"),
+            (WritePolicyStatus::Disabled, "Devre dışı (0)"),
+            (WritePolicyStatus::NotConfigured, "Tanımlı değil"),
+            (
+                WritePolicyStatus::UnexpectedValue(9),
+                "Beklenmeyen değer (9)",
+            ),
+        ];
+
+        for (policy, expected) in cases {
+            let status = super::WindowsWriteProtectionPreflight {
+                product_name: None,
+                edition_id: None,
+                build_number: None,
+                process_is_elevated: Some(false),
+                support: WriteProtectionSupport::Unknown,
+                computer_policy: policy,
+                read_warnings: Vec::new(),
+            };
+            let summary = super::windows_write_protection_summary(&status);
+            assert!(summary.contains("DUYRA yönetici yetkisi: Yükseltilmemiş"));
+            assert!(summary.contains(&format!("HKLM Deny_Write): {expected}")));
+        }
     }
 
     #[test]
