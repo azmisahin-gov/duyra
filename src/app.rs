@@ -53,9 +53,8 @@ impl PolicyAuthorityUiState {
 
     fn save_report(&mut self) {
         if let (Some(preflight), Some(check)) = (&self.preflight, &self.result) {
-            self.report_status = Some(
-                crate::diagnostics::write_windows_report(preflight, check).map(|_| ()),
-            );
+            self.report_status =
+                Some(crate::diagnostics::write_windows_report(preflight, check).map(|_| ()));
         }
     }
 
