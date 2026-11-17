@@ -17,6 +17,14 @@ fn main() -> eframe::Result {
 
     let mut examination_ui = app::ExaminationUiState::load(&write_protection);
 
+    // VirtualBox 3D acceleration can expose a DX12/Vulkan adapter whose
+    // presentation path renders a black window. Test the WGPU GLES backend
+    // in isolation before considering any renderer fallback or release change.
+    let mut wgpu_options = eframe::WgpuConfiguration::default();
+    if let eframe::egui_wgpu::WgpuSetup::CreateNew(setup) = &mut wgpu_options.wgpu_setup {
+        setup.instance_descriptor.backends = eframe::wgpu::Backends::GL;
+    }
+
     let native_options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
             .with_title("DUYRA")
@@ -24,6 +32,7 @@ fn main() -> eframe::Result {
             .with_inner_size([1180.0, 780.0])
             .with_min_inner_size([920.0, 640.0]),
         renderer: eframe::Renderer::Wgpu,
+        wgpu_options,
         ..Default::default()
     };
 
