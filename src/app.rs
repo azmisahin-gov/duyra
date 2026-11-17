@@ -1252,8 +1252,10 @@ fn draw_preflight_row(ui: &mut egui::Ui, label: &str, value: &str) {
     });
 }
 
-
-fn draw_evidence(ui: &mut egui::Ui, inventory: &mut crate::device_inventory::DeviceInventory) {
+fn draw_evidence(
+    ui: &mut egui::Ui,
+    inventory: &mut crate::device_inventory::DeviceInventory,
+) {
     egui::Frame::new()
         .fill(SURFACE)
         .stroke(Stroke::new(1.0, BORDER))
