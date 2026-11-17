@@ -459,13 +459,14 @@ DUYRA'nın ilerideki aç/kapat işlevi şu kuralları sağlamadan uygulanmayacak
 
 ### 18.5. Aşamalı uygulama sırası
 
-1. **Salt okunur yönetim kaynağı denetimi:** Önce RSoP/Grup İlkesi, MDM kayıt işaretleri, hedef Storage CSP kaydı ve etki alanı üyeliği incelenir. Herhangi bir yönetim sinyali varsa sonuç “Yönetilen”; sorgulardan biri başarısızsa “Bilinmiyor” olur. Her iki durumda da DUYRA politika değiştirmez.
+1. **Salt okunur yönetim kaynağı denetimi:** Önce RSoP/Grup İlkesi, MDM kayıt işaretleri, hedef Storage CSP kaydı ve etki alanı üyeliği incelenir. Uygulanmış ilgili RSoP kaydı, hedef Storage CSP ayarı veya etki alanı üyeliği varsa sonuç “Yönetilen” olur. `HKLM\\SOFTWARE\\Microsoft\\Enrollments` altında kayıt anahtarı bulunması tek başına etkin MDM yönetimini kanıtlamaz; Microsoft, cihaz MDM'den çıkarıldıktan sonra bu anahtarların kalabildiğini belirtiyor. Bu işaret tek başına varsa sonuç “Bilinmiyor” olur ve politika değişikliği yine engellenir. Sorgulardan biri başarısızsa da “Bilinmiyor” sonucu verilir.
 2. **Değişiklik ve geri alma motoru:** Yalnızca ilk denetim tüm sinyalleri açıkça olumsuz döndürdüğünde, ayrıca kullanıcı onayı alındığında değerlendirilebilir. Önceki registry değerinin/türünün yedeği, DUYRA'nın yazdığı değer ve sonradan dışarıdan değişiklik kontrolü ayrı test edilebilir birimler olmalıdır. Bu aşama tamamlanmadan HKLM yazma işlemi ürün akışına eklenmez.
 3. **Gerçek aygıt doğrulaması:** İzole Windows VM ve ayrılmış deneme USB/microSD üzerinde, host ilkesi ile konuk işletim sistemi ve Sandbox klasör eşlemeleri birbirinden ayrı sınanır.
 
 RSoP sorgusu `root\RSOP\Computer` içindeki `RSOP_RegistryPolicySetting` sınıfını kullanır; yalnızca tam ve başarılı bir sonuç “uygulandı/yok” olarak kabul edilir. Sorgu erişilemez veya zaman aşımına uğrarsa “Bilinmiyor” döner. MDM kayıt anahtarının varlığı yalnızca yönetim işaretidir; tek başına etkin Intune politikasının kanıtı değildir. Bu nedenle bu denetim bir kaynak ön değerlendirmesidir; yönetim kaynağının kesin olarak çözüldüğünü veya değişiklik izni verildiğini iddia etmez.
 
 Kaynaklar:
+- Microsoft MDM enrollment troubleshooting (eski enrollment registry girdileri kalabilir; Admin event ID 75/76): https://learn.microsoft.com/en-us/windows/client-management/mdm-diagnose-enrollment
 - Microsoft Storage Policy CSP: https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-storage
 - Windows Sandbox yapılandırması: https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-configure-using-wsb-file
 - Oracle VirtualBox USB desteği: https://download.virtualbox.org/virtualbox/7.0.0_BETA3/UserManual.pdf
