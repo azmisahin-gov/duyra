@@ -605,3 +605,15 @@ Kabul testleri; kullanılabilir boş depo, okunamayan fakat korunan kayıt dosya
 2. **Sonraki modüller:** Güncelleme doğrulaması, uygulama bağımlılıkları, ses işleme motoru ve rapor oluşturma gibi modüller aynı sabit olay API'sine katılır.
 3. **İleri aşama:** Kullanıcı onayıyla tanılama paketini inceleme ve seçmeli dışa aktarma; otomatik upload hiçbir zaman varsayılan olmaz.
 4. Her yeni denetim için risk sınıfı, saklanan alanlar, rapor şeması ve kabul testi belgelenmeden otomatik başlangıç kontrolüne eklenmez.
+
+## 20. Bağlı aygıtın geçici seçimi
+
+Bağlı disk aygıtları PnP listesinden görüntülendikten sonra kullanıcı bir satırı açıkça seçebilir. Bu seçim yalnızca uygulamanın belleğinde ve mevcut tarama listesinin geçici satır numarasıyla tutulur.
+
+- Yeni tarama başladığında seçim temizlenir; uygulama yeniden açıldığında zaten mevcut değildir.
+- Seçim aygıtın benzersiz kimliği, fiziksel delil kimliği veya yazma koruması doğrulaması değildir. PnP adı ve çıkarma politikası otomatik seçim/öncelik ölçütü yapılmaz.
+- Seçim inceleme kaydına, tanılama günlüğüne veya kalıcı ayar dosyasına yazılmaz.
+- Bu aşamada disk/volume tanıtıcısı açılmaz; dosya sistemi, bölüm, sektör veya içerik okunmaz; aygıta yazılmaz.
+- Aygıt seçimi, ileride ayrı bir güvenlik ve kabul kapısıyla geliştirilecek delil dosyası envanteri iş akışına yalnızca kullanıcı niyetini taşır. Kaynağın gerçek kimliği ve delil zinciri ayrıca doğrulanmadan seçilmiş aygıt "doğrulanmış delil kaynağı" sayılamaz.
+
+Kabul ölçütü: Kullanıcı listelenen bir aygıtı seçip seçimi kaldırabilir; yeniden tarama ve uygulamanın yeniden başlatılması seçimi sıfırlar. Seçim hiçbir kalıcı depoda bulunmaz ve seçimin kendisi donanım erişimi başlatmaz.
