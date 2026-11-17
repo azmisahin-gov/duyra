@@ -8,7 +8,7 @@ DUYRA, bilirkişinin ses materyalini güvenli ve yerel biçimde incelemesine yar
 
 **[En son Windows sürümünü indir](https://github.com/azmisahin-gov/duyra/releases/latest/download/duyra-windows-x86_64.exe)**
 
-Uygulamayı bir kez indirin. Yeni sürüm yayımlandığında DUYRA açılışta GitHub Releases'i arka planda kontrol eder. Güncelleme paketi gömülü Ed25519 doğrulama anahtarıyla ve SHA-256 özetiyle doğrulanmadan yüklenmez. Doğrulama başarılı olursa uygulama kendini günceller ve yeni sürümle yeniden açılır.
+Uygulamayı bir kez indirin. DUYRA açılışta ve uygulama açık kaldığı sürece altı saatlik aralıklarla GitHub Releases üzerinde yeni sürüm arar. Kontrol aralığı kullanıcı bilgisayarında kaydedilir; uygulamanın kısa aralıklarla yeniden açılması gereksiz API isteği oluşturmaz. Yeni sürüm bulunduğunda alt durum çubuğunda bildirim gösterilir. **Kurulum yalnızca kullanıcı "Şimdi güncelle" düğmesine bastığında başlar.** İmzalı paket indirilir; Ed25519 imzası ve SHA-256 bütünlüğü doğrulanır; ardından uygulama kurulur ve yeniden başlatılır. "Daha sonra" seçeneği güncellemeyi bir sonraki denetime kadar erteler. DUYRA kendi kendine, kullanıcının onayı olmadan uygulama kapanışı veya yeniden başlatma yapmaz.
 
 ## Windows uygulama konumu
 

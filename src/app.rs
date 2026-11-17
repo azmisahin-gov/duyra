@@ -469,15 +469,13 @@ fn draw_status_bar(ui: &mut egui::Ui, update_status: &SharedUpdateStatus) {
             stage: "durum okunamadı".to_owned(),
             message: "Güncelleme durumu okunamadı.".to_owned(),
             target_version: None,
+            update_available: false,
             error: Some("Güncelleme durumu kilitlenmiş.".to_owned()),
         });
 
-    let is_checking = snapshot.error.is_none()
-        && !matches!(
-            snapshot.stage.as_str(),
-            "güncel" | "yeniden_başlatma" | "desteklenmiyor"
-        );
-    if is_checking {
+    let is_busy = snapshot.error.is_none()
+        && matches!(snapshot.stage.as_str(), "kontrol_ediliyor" | "kurulum");
+    if is_busy {
         ui.ctx().request_repaint_after(Duration::from_millis(250));
     }
 
@@ -492,31 +490,58 @@ fn draw_status_bar(ui: &mut egui::Ui, update_status: &SharedUpdateStatus) {
         .show(ui, |ui| {
             ui.set_min_height(FOOTER_HEIGHT - 1.0);
             ui.horizontal(|ui| {
-                if is_checking {
+                if is_busy {
                     ui.spinner();
-                } else if snapshot.error.is_some() {
+                } else if snapshot.error.is_some() || snapshot.update_available {
                     draw_status_indicator(ui, WARNING);
                 } else {
                     draw_status_indicator(ui, SUCCESS);
                 }
 
                 let status_text = if snapshot.error.is_some() {
-                    "Güncelleme denetiminde sorun var"
-                } else if snapshot.stage == "desteklenmiyor" {
-                    "Otomatik güncelleme bu sistemde etkin değil"
-                } else if is_checking {
-                    "Güncellemeler denetleniyor"
+                    "Güncelleme denetiminde sorun var".to_owned()
                 } else {
-                    "DUYRA güncel"
+                    match snapshot.stage.as_str() {
+                        "desteklenmiyor" => {
+                            "Otomatik güncelleme bu sistemde etkin değil".to_owned()
+                        }
+                        "kontrol_ediliyor" => "Güncellemeler denetleniyor".to_owned(),
+                        "kontrol_bekleniyor" => {
+                            "Sonraki güncelleme denetimi için süre bekleniyor".to_owned()
+                        }
+                        "güncelleme_bulundu" => format!(
+                            "Yeni sürüm bulundu: {}",
+                            snapshot.target_version.as_deref().unwrap_or("Yeni sürüm")
+                        ),
+                        "kurulum" => {
+                            "Onaylandı: indiriliyor, doğrulanıyor ve kuruluyor".to_owned()
+                        }
+                        "ertelendi" => format!(
+                            "{} güncellemesi ertelendi",
+                            snapshot.target_version.as_deref().unwrap_or("Yeni sürüm")
+                        ),
+                        "yeniden_başlatma" => {
+                            "Güncelleme kuruldu; DUYRA yeniden başlatılıyor".to_owned()
+                        }
+                        _ => "DUYRA güncel".to_owned(),
+                    }
                 };
 
-                ui.label(RichText::new(status_text).size(10.0).color(
-                    if snapshot.error.is_some() {
-                        WARNING
-                    } else {
-                        MUTED
-                    },
-                ));
+                let status_color = if snapshot.error.is_some() || snapshot.update_available {
+                    WARNING
+                } else {
+                    MUTED
+                };
+                ui.label(RichText::new(status_text).size(10.0).color(status_color));
+
+                if snapshot.update_available {
+                    if ui.small_button("Şimdi güncelle").clicked() {
+                        updater::install_approved_update(update_status);
+                    }
+                    if ui.small_button("Daha sonra").clicked() {
+                        updater::defer_update(update_status);
+                    }
+                }
 
                 if snapshot.error.is_some() {
                     ui.add_space(8.0);

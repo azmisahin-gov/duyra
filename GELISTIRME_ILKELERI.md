@@ -121,7 +121,7 @@ Otomatik güncelleme için kabul testi:
 
 ## 10. Şu anki hedef
 
-**Mevcut hedef: v0.1.8 ana ekran görsel düzeltmelerini tamamlamak ve gerçek kullanıcı ekranında doğrulamak.**
+**Mevcut hedef: v0.1.9 otomatik güncellemeyi altı saatlik kontrol ve kullanıcı onayıyla güvenli hâle getirmek.**
 
 - v0.1.7 ana çalışma alanı kullanıcı bilgisayarında açıldı ve ekran görüntüsüyle incelendi.
 - Kullanıcı ekranında bazı Unicode simgelerin yazı tipi nedeniyle boş/kutu karakter olarak göründüğü ve alt durum çubuğundaki metinlerin birbirine yaklaştığı görüldü.
@@ -130,7 +130,12 @@ Otomatik güncelleme için kabul testi:
 - v0.1.7'den v0.1.8'e gerçek güncelleme kullanıcı bilgisayarında gerçekleşti; kullanıcı uygulama açıkken yeni sürümün gelmediğini, kapatıp yeniden açınca güncellemenin otomatik uygulandığını bildirdi. Bu, mevcut açılışta tek seferlik kontrol davranışıyla uyumludur.
 - 1920×1080 ekrandan gönderilen ilk açılış görüntüsünde simgeler düzgün, alt durum çubuğu aralıklı görünmektedir; v0.1.8 görsel düzeltmeleri gerçek kullanıcı ekranında doğrulanmıştır.
 - İlk açılışta pencere ekranın sol üst tarafına yakın konumlanmıştır. Bu konum davranışı kaydedilmiş, merkezleme/son konumu hatırlama tercihi ayrı değerlendirmeye bırakılmıştır.
-- Bu hedef doğrulanmadan otomatik güncelleyici iyileştirmesine veya yeni delil/deşifre özelliklerine geçilmez.
+- v0.1.8 görsel düzeltmeleri 1920×1080 gerçek kullanıcı ekranında doğrulandı; bozuk simgeler ve alt durum çubuğu aralığı düzeldi.
+- v0.1.7 → v0.1.8 güncellemesi, uygulama yeniden açıldığında gerçekleşti. Bu deneyim mevcut açılışta tek seferlik kontrol davranışını doğruladı.
+- Bu hedefte kontrol aralığı 6 saat olacak; yeni sürüm bulunduğunda kullanıcıya bildirim gösterilecek. Kurulum ancak "Şimdi güncelle" onayıyla başlayacak; "Daha sonra" güncellemeyi sonraki denetime erteleyecek.
+- Açık işler varken otomatik boşta-kalma kurulumunu belirlemek için henüz inceleme/işlem durum modeli bulunmadığından, bu sürüm sessiz kurulum yapmayacak. İş bittiğinde otomatik kurulum tercihi, aktif çalışma modeli geliştirildiğinde ayrı olarak ele alınacaktır.
+- Windows CI kontrolleri, testler ve derleme başarılı olmalı; v0.1.9 Release yayımlanmalıdır.
+- v0.1.8 hedefi doğrulandığı için bu güncelleyici hedefi başlamıştır; bu hedef doğrulanmadan CI ekran görüntüsü otomasyonu veya delil/deşifre özelliklerine geçilmez.
 
 ## 11. Kapsamı küçük tutma
 
@@ -145,26 +150,27 @@ Bu bölüm sıradaki işleri görünür kılar; işler mevcut hedef tamamlanmada
 
 ### 12.1. Otomatik güncelleyiciyi güvenli hâle getirme
 
-Mevcut kodun gerçek davranışı:
+**v0.1.9 hedefi:** Güncelleme kontrolü altı saat aralıkla yapılır; yeni sürüm otomatik kurulmaz, kullanıcıya bildirilir ve kurulum için açık onay beklenir.
 
-- Güncelleme kontrolü yalnızca uygulama başlangıcında bir kez yapılır. Kullanıcının v0.1.7 → v0.1.8 gerçek kullanım denemesinde, uygulama açıkken yeni sürüm gelmemiş; kapatılıp yeniden açıldıktan sonra güncelleme otomatik uygulanmıştır.
-- Altı saatlik periyodik kontrol yoktur. Uygulama açıkken yayımlanan yeni sürüm, mevcut davranışla ancak sonraki açılış kontrolünde bulunur.
-- Yeni sürüm bulunursa mevcut uygulama paketi indirir, imza doğrulaması yapar, kurar ve uygulamayı otomatik yeniden başlatır.
-- Kullanıcıya önce karar vereceği bir güncelleme bildirimi ve erteleme akışı henüz yoktur.
-- Açık inceleme/işlem durumunu takip ederek yeniden başlatmayı güvenli ana erteleme mekanizması henüz yoktur.
+Uygulanacak davranış:
 
-Kullanıcının istediği sonraki hedef:
+- İlk açılışta son başarılı kontrolün üzerinden en az altı saat geçmişse kontrol yapılır. Kontrol zamanı kullanıcı uygulama verisi altında saklanır; sık açma/kapatma gereksiz API istekleri oluşturmaz.
+- DUYRA açık kaldığında da altı saatlik aralık dolunca yeni kontrol yapılır. Zamanlama küçük bir rastgele gecikmeyle dağıtılır.
+- Geçici hatalarda artan bekleme uygulanır; GitHub 403/429 hız sınırı yanıtlarında sunucunun bildirdiği yeniden deneme süresine uyulur.
+- Yeni sürüm bulunduğunda alt durum çubuğunda sürüm bilgisi ve iki seçenek gösterilir: "Şimdi güncelle" ve "Daha sonra".
+- "Şimdi güncelle" açık kullanıcı onayıdır. Bu işlemden sonra paket indirilir; SHA-256 bütünlüğü ve gömülü Ed25519 imzası doğrulanır; kurulum başarılı olursa uygulama yeniden başlatılır.
+- "Daha sonra" kurulum yapmaz. Bildirim bir sonraki altı saatlik kontrolde yeniden gösterilebilir.
+- Kullanıcı onayı olmadan uygulama kendi kendine kapanmaz, kurulum yapmaz veya yeniden başlatılmaz.
+- Güncelleme hatasında mevcut sürüm çalışmaya devam eder; hata yerel günlüğe yazılır ve kullanıcı günlük klasörünü/tanı özetini açabilir.
 
-- Varsayılan kontrol aralığı 6 saat olmalıdır; açılış kontrolü ve uygulama açık kaldığı sürece periyodik kontrol birlikte ele alınmalıdır.
-- Kontrol zamanları eşzamanlı istek yükü oluşturmamak için rastgele küçük gecikmeyle dağıtılmalı; ağ sınırı ve geçici hatalarda artan bekleme uygulanmalıdır.
-- Yeni sürüm bulunduğunda kullanıcı açıkça bilgilendirilmelidir.
-- Kullanıcı isterse "Şimdi güncelle" diyebilmelidir.
-- Diğer durumda indirme ve imza/bütünlük doğrulaması arka planda yapılabilir; kurulum ve yeniden başlatma kullanıcının çalışmasını kesmemelidir.
-- Güvenli boşta kalma algısı tek başına yeterli sayılmamalı; kullanıcının onayı/tercihi, açık inceleme, kaydedilmemiş değişiklik ve süren işler birlikte dikkate alınmalıdır.
-- Güncelleme başarısız olursa mevcut sürüm çalışmaya devam etmeli ve hata yerel günlüğe yazılmalıdır.
-- Güncelleme imzalama anahtarı ile olası lisans anahtarları birbirinden ayrı kalmalıdır.
+**Bu sürümde bilinçli olarak yapılmayacaklar:**
 
-Bu iş, v0.1.8 ana ekran düzeltmesi doğrulandıktan sonra; delil işleme özellikleri eklenmeden önce ayrı bir hedef olarak ele alınacaktır. Uygulanıp gerçek kullanıcı tarafından test edilmeden mevcut davranış gibi anlatılmayacaktır.
+- İndirme kullanıcı onayından önce arka planda başlamaz; gereksiz indirme ve yarım kalan paket yönetimi eklenmez.
+- "İşimi bitirince otomatik kur" tercihi henüz uygulanmaz. İnceleme, kaydedilmemiş değişiklik ve çalışan görev durumları için güvenilir bir yaşam döngüsü modeli kurulmadan boşta kalma varsayımıyla uygulama yeniden başlatılmaz. Bu davranış, gerçek çalışma akışları eklendiğinde ayrı kabul testiyle ele alınır.
+- Ayarlar ekranına gereksiz tercih seçenekleri eklenmez; bu sürümde 6 saat varsayılan ve sabittir.
+
+Bu iş, v0.1.8 ana ekran doğrulamasından sonra başlatılmıştır. Uygulanıp CI ve gerçek kullanıcı testi tamamlanmadan sonraki hedefe geçilmez.
+
 
 ### 12.2. Ekran görüntüsüyle gerçek kullanıcı doğrulaması
 
