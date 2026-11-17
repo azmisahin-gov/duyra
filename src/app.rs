@@ -102,6 +102,9 @@ pub struct ExaminationUiState {
 
 impl ExaminationUiState {
     pub fn load(write_protection: &WriteProtectionPreflight) -> Self {
+        #[cfg(not(target_os = "windows"))]
+        let _ = write_protection;
+
         let examinations = ExaminationStore::open_default();
         let examination_notice = examinations.notice();
 
