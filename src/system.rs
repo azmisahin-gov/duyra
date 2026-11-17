@@ -363,9 +363,10 @@ pub fn windows_write_protection_summary(status: &WindowsWriteProtectionPreflight
             "İşletim sistemi destek durumu: {}\n",
             "Bilgisayar Grup İlkesi (HKLM Deny_Write): {}\n",
             "Ek okuma uyarısı sayısı: {}\n",
+            "Gerçek aygıt yazma testi: Yapılmadı\n",
             "\n",
             "Not: Bu sonuç yalnızca bilgisayar düzeyindeki HKLM ilke kaydını gösterir.\n",
-            "Tek başına USB aygıtının fiilen salt okunur olduğunu kanıtlamaz.\n",
+            "Politika etkin görünse bile USB/SSD/microSD aygıtında yazmanın engellendiğini kanıtlamaz.\n",
             "Bu ön kontrol sistem ayarlarını değiştirmez ve USB aygıtını açmaz."
         ),
         status.product_name.as_deref().unwrap_or("Okunamadı"),
@@ -1036,7 +1037,8 @@ mod write_protection_tests {
         assert!(summary.contains("Destek listesiyle eşleşiyor"));
         assert!(summary.contains("HKLM Deny_Write): Okunamadı"));
         assert!(summary.contains("Ek okuma uyarısı sayısı: 1"));
-        assert!(summary.contains("fiilen salt okunur olduğunu kanıtlamaz"));
+        assert!(summary.contains("Gerçek aygıt yazma testi: Yapılmadı"));
+        assert!(summary.contains("yazmanın engellendiğini kanıtlamaz"));
         assert!(!summary.contains("Registry read failed"));
         assert!(!summary.contains("Sensitive path"));
         assert!(!summary.contains("C:\\\\Users"));

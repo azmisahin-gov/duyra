@@ -1021,8 +1021,8 @@ fn draw_settings(
                                 WARNING,
                             ),
                             PolicyChangeAssessment::Reviewable => (
-                                "Bilinen yönetim kaynağı saptanmadı. Bu yalnızca ön değerlendirmedir; henüz değişiklik izni değildir.",
-                                SUCCESS,
+                                "Bilinen bir yönetim kaynağı saptanmadı; bu bulgu otomatik değişiklik yetkisi vermez.",
+                                WARNING,
                             ),
                             PolicyChangeAssessment::Unknown => (
                                 "Kaynak kesinleştirilemedi. Güvenlik gereği politika değişikliği engellenmelidir.",
@@ -1060,13 +1060,13 @@ fn draw_settings(
                                 WARNING,
                             ),
                             PolicyChangeReadiness::PreconditionsMet => (
-                                "Salt okunur ön koşullar uygun görünüyor. Bu sürüm yine de politika değiştirmez; kapsam onayı ve güvenli geri alma sonraki adımlarda doğrulanacak.",
-                                SUCCESS,
+                                "Salt okunur sinyaller uygun görünüyor; ancak Windows Registry için gerekli atomik koşullu güncelleme/geri alma yolu doğrulanmadığından DUYRA politikayı otomatik değiştirmez.",
+                                WARNING,
                             ),
                         };
                         ui.add_space(7.0);
                         ui.label(
-                            RichText::new("POLİTİKA DEĞİŞİKLİĞİ ÖN KOŞULLARI")
+                            RichText::new("SALT OKUNUR ÖN KOŞUL DEĞERLENDİRMESİ")
                                 .size(10.0)
                                 .strong()
                                 .color(MUTED),
@@ -1085,6 +1085,30 @@ fn draw_settings(
                             .color(MUTED),
                         );
                     }
+
+                    ui.add_space(12.0);
+                    ui.separator();
+                    ui.label(
+                        RichText::new("GERÇEK AYGIT YAZMA DAVRANIŞI")
+                            .size(10.0)
+                            .strong()
+                            .color(MUTED),
+                    );
+                    ui.label(
+                        RichText::new(
+                            "Doğrulanmadı. Bu ön kontrol USB, USB-SSD veya microSD aygıtını açmaz ve aygıta yazma denemesi yapmaz.",
+                        )
+                        .size(11.0)
+                        .strong()
+                        .color(WARNING),
+                    );
+                    ui.label(
+                        RichText::new(
+                            "HKLM Deny_Write değerinin 1 olması yalnızca bilgisayar düzeyindeki politika kaydının etkin göründüğünü belirtir; bağlı bir aygıta yazmanın fiilen engellendiğini kanıtlamaz.",
+                        )
+                        .size(10.0)
+                        .color(MUTED),
+                    );
 
                     ui.add_space(12.0);
                     ui.separator();
