@@ -442,30 +442,30 @@ Kullanıcı Windows Sandbox ve VirtualBox gibi sanallaştırma araçlarını kul
 
 HKLM `SOFTWARE\\Policies` altında `Deny_Write` değerinin bulunması tek başına bu değeri kimin yönettiğini kanıtlamaz. Yerel Grup İlkesi, etki alanı Grup İlkesi veya MDM/Intune gibi yönetim mekanizmaları aynı politika alanını yönetebilir.
 
-DUYRA'nın ilerideki aç/kapat işlevi şu kuralları sağlamadan uygulanmayacaktır:
+**Mimari karar:** DUYRA bu politikayı açıp kapatmaz, Registry'ye yazmaz ve otomatik geri alma yapmaz. Windows Registry için dış yöneticiler karşısında güvenli koşullu güncelleme/geri alma garantisi doğrulanamadığından bu işlem ürün akışına eklenmeyecektir.
 
-1. Politikanın destek kapsamı ve mevcut değeri salt okunur incelenir. Mümkün olduğu ölçüde yerel GPO, etki alanı GPO ve MDM/Intune yönetimi ayrıştırılır.
-2. Politikanın yönetim kaynağı belirsizse veya kurum politikası tarafından yönetiliyorsa DUYRA değiştirme/geri alma işlemini reddeder; yalnızca mevcut durumu ve nedeni açıklar. Kullanıcının genel kapsamı kabul etmiş olması, kurumsal yönetim ilkesini ezme izni sayılmaz.
-3. DUYRA'nın değiştirmesine izin verilen yerel ve yönetilmeyen durumda, işlemden önce mevcut değerin varlığı, türü ve tam değeri saklanır. Önceki durum “yok” ise geri alma işlemi yalnızca DUYRA'nın oluşturduğu değeri kaldırabilir.
-4. Geri alma sırasında mevcut değer, DUYRA'nın son yazdığı değerle hâlâ aynı değilse dışarıdan değişiklik olmuş kabul edilir; DUYRA yeni değeri ezmez ve otomatik silme/geri yükleme yapmaz.
-5. Kullanıcıya etki alanı, değişecek ayar, önceki durum ve geri alma yöntemi açıkça gösterilir. Yönetici yükseltmesi yalnızca kullanıcı onayından sonra ve gereken işlem için istenir.
-6. İşlemden sonra politika yeniden okunur. Bu sonuç, tek başına bağlı aygıtın fiilen salt okunur olduğunu kanıtlamaz; arayüz “politika uygulandı” ile “aygıt salt okunur doğrulandı” durumlarını ayrı tutar.
-7. Etkin politika, aygıtın gerçek salt okunur davranışı doğrulanmadan “delil koruması doğrulandı” olarak sunulmaz.
+1. DUYRA Windows edisyonu, mevcut politika değeri ve bilinen yönetim sinyallerini salt okunur inceler.
+2. Yönetim kaynağı belirsizse veya kurumsal yönetim işareti varsa sonuç fail-closed kalır; DUYRA politika değiştirmez ve yönetici yetkisi istemez.
+3. Yetkili bir Windows yönetim aracıyla uygulanmış politika DUYRA tarafından yalnızca raporlanır. Uygulama kaynağının kesin sahipliği yalnızca bir Registry değerinden çıkarılmaz.
+4. Kullanıcıya politika kaydının görünmesi ile gerçek aygıt yazma davranışının doğrulanması ayrı gösterilir.
+5. DUYRA, gerçek aygıt testi yapmadıkça veya harici test kaydını doğrulayamadıkça “delil koruması doğrulandı” sonucunu üretmez.
+6. Geri alma, bu tek seferlik kabul testi için DUYRA tarafından değil, test öncesi alınan VM snapshot'ının geri yüklenmesiyle yapılır. Bu işlem konuk VM durumunu geri alır; fiziksel test medyasındaki dosyaları geri almaz.
 
 ### 18.4. Test ve yayın koşulları
 
-- Registry/policy yazma testleri GitHub Actions üzerinde gerçek runner sistem politikasını değiştirmemelidir. Politika yazma/geri alma testleri yalnızca tek kullanımlık, snapshot alınmış Windows test VM'sinde yapılır.
-- Birim testleri önceki değerin yok/0/1/beklenmeyen türde olması, değişikliğin yarıda kalması, DUYRA sonrasında dışarıdan değer değiştirilmesi ve güvenli geri alma senaryolarını kapsar.
+- GitHub Actions gerçek runner üzerindeki Registry/Grup İlkesi ayarlarını değiştirmez. İşlem protokolü testleri yalnızca sahte sağlayıcıyla yürütülür.
 - Windows CI biçim, Clippy, birim testleri ve x64 derlemeyi doğrular. Linux görsel CI yalnızca ortak arayüzü doğrular; Windows ilkesinin veya gerçek USB davranışının kanıtı sayılmaz.
-- Donanımsal yazma engelleyici varsa ek koruma katmanı olarak kullanılabilir; zorunlu ürün gereksinimi değildir.
-- Gerçek cihaz kabulü yalnızca ayrılmış, boş ve yeniden biçimlendirilebilir deneme USB'si/microSD ile yapılır. Gerçek delil aygıtına yazma denemesi yapılmaz.
-- Yönetilen politika, geri alma, sistem kapsamı veya aygıtın gerçek yazma engeli güvenilir biçimde doğrulanamıyorsa DUYRA koruma doğrulandı durumuna geçmez ve delil okuma akışını açmaz.
+- Tek seferlik gerçek aygıt kabulü yalnızca snapshot alınmış, ayrılmış Windows 11 VM'sinde ve boş/atılabilir test USB belleğinde yapılır. USB-SSD veya microSD, Windows'un ilgili çıkarılabilir disk sınıfına girdiği ayrıca doğrulanmadan başarılı test örneği sayılmaz.
+- Testte yerel/kurumsal yönetim kaynağı belirsizse işlem durdurulur. Politika yalnızca Windows'un yetkili yönetim aracıyla konuk VM içinde uygulanır; DUYRA bu işlemi yapmaz.
+- Test sonrasında konuk VM, önceden alınmış snapshot'a döndürülür. Snapshot fiziksel USB medyasının içeriğini geri almaz.
+- Gerçek delil aygıtına hiçbir koşulda yazma denemesi yapılmaz. Test sonucu yalnızca test edilen konuk VM ve test medyası kombinasyonu için raporlanır.
 
 ### 18.5. Aşamalı uygulama sırası
 
-1. **Salt okunur yönetim kaynağı denetimi:** Önce RSoP/Grup İlkesi, MDM kayıt işaretleri, hedef Storage CSP kaydı ve etki alanı üyeliği incelenir. Uygulanmış ilgili RSoP kaydı, hedef Storage CSP ayarı veya etki alanı üyeliği varsa sonuç “Yönetilen” olur. `HKLM\\SOFTWARE\\Microsoft\\Enrollments` altında kayıt anahtarı bulunması tek başına etkin MDM yönetimini kanıtlamaz; Microsoft, cihaz MDM'den çıkarıldıktan sonra bu anahtarların kalabildiğini belirtiyor. Bu işaret tek başına varsa sonuç “Bilinmiyor” olur ve politika değişikliği yine engellenir. Sorgulardan biri başarısızsa da “Bilinmiyor” sonucu verilir.
-2. **Değişiklik ve geri alma motoru:** Yalnızca ilk denetim tüm sinyalleri açıkça olumsuz döndürdüğünde, ayrıca kullanıcı onayı alındığında değerlendirilebilir. Önceki registry değerinin/türünün yedeği, DUYRA'nın yazdığı değer ve sonradan dışarıdan değişiklik kontrolü ayrı test edilebilir birimler olmalıdır. Bu aşama tamamlanmadan HKLM yazma işlemi ürün akışına eklenmez.
-3. **Gerçek aygıt doğrulaması:** İzole Windows VM ve ayrılmış deneme USB/microSD üzerinde, host ilkesi ile konuk işletim sistemi ve Sandbox klasör eşlemeleri birbirinden ayrı sınanır.
+1. **Salt okunur ön kontrol (tamamlandı):** RSoP/Grup İlkesi, MDM kayıt işaretleri, hedef Storage CSP kaydı, bilgisayarın etki alanı üyeliği ve mevcut politika değeri değerlendirilir. Eksik veya belirsiz sinyal “Bilinmiyor” olarak kalır.
+2. **Otomatik politika değiştirme (kapsam dışı):** Gerçek Windows Registry API'leriyle güvenli koşullu yazma/geri alma yolu belgelenemediği için DUYRA'da bu işlem sunulmayacaktır. PR #15'teki işlem modeli yalnızca sahte sağlayıcı testidir.
+3. **Harici politika gözlemi (mevcut):** Yetkili Windows yönetim aracıyla uygulanmış politika DUYRA tarafından salt okunur gösterilir. Ön koşulların uygun görünmesi DUYRA'ya yazma yetkisi vermez.
+4. **Tek seferlik gerçek aygıt kabulü (manuel, bekliyor):** Ayrılmış VM snapshot'ı ve boş/atılabilir test USB belleği kullanılır. Politika konuk Windows içinde yönetim aracıyla uygulanır; test sonucu ve snapshot geri dönüşü ayrı kaydedilir. DUYRA, Registry'ye yazmaz ve geri alma yapmaz.
 
 RSoP sorgusu `root\RSOP\Computer` içindeki `RSOP_RegistryPolicySetting` sınıfını kullanır; yalnızca tam ve başarılı bir sonuç “uygulandı/yok” olarak kabul edilir. Sorgu erişilemez veya zaman aşımına uğrarsa “Bilinmiyor” döner. MDM kayıt anahtarının varlığı yalnızca yönetim işaretidir; tek başına etkin Intune politikasının kanıtı değildir. Bu nedenle bu denetim bir kaynak ön değerlendirmesidir; yönetim kaynağının kesin olarak çözüldüğünü veya değişiklik izni verildiğini iddia etmez.
 
@@ -506,6 +506,10 @@ Kaynaklar (Microsoft Learn, 17 Kasım 2026 tarihinde incelendi):
 - RegNotifyChangeKeyValue: https://learn.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regnotifychangekeyvalue
 - RegOpenKeyTransacted: https://learn.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regopenkeytransacteda
 - Kernel Transaction Manager: https://learn.microsoft.com/en-us/windows/win32/ktm/kernel-transaction-manager-portal
+
+### 18.7. Tek seferlik VM kabul prosedürü
+
+Gerçek aygıt doğrulaması yalnızca [Windows VM kabul prosedüründeki](docs/windows-write-protection-vm-acceptance.md) güvenlik kapıları ve geri dönüş adımlarıyla yürütülür. Test medyası fiziksel olduğundan VM snapshot'ı medyanın içeriğini geri almaz. DUYRA'nın politika yazma veya geri alma akışı yoktur.
 
 ## 19. Uygulama genelinde otomatik tanılama altyapısı
 
