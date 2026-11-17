@@ -194,7 +194,7 @@ pub enum WriteProtectionSupport {
     Unknown,
 }
 
-#[cfg(any(target_os = "windows", test))]
+#[cfg(target_os = "windows")]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WindowsWriteProtectionPreflight {
     pub product_name: Option<String>,
