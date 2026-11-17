@@ -194,6 +194,11 @@ fn write_report_atomically(path: &std::path::Path, bytes: &[u8]) -> Result<(), &
         .map_err(|_| "Tanılama raporu diske yazılamadı.")?;
     drop(file);
 
+    // Windows rename does not replace an existing destination. Remove only
+    // DUYRA's previous generated report before publishing the new one.
+    if path.exists() {
+        fs::remove_file(path).map_err(|_| "Önceki tanılama raporu yenilenemedi.")?;
+    }
     fs::rename(&temporary, path).map_err(|_| {
         let _ = fs::remove_file(&temporary);
         "Tanılama raporu tamamlanamadı."
