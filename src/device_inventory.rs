@@ -34,9 +34,20 @@ pub enum DeviceRemovalPolicy {
 }
 
 #[cfg(any(target_os = "windows", test))]
+const CM_DEVCAP_REMOVABLE: u32 = 0x0000_0004;
+#[cfg(any(target_os = "windows", test))]
+const CM_REMOVAL_POLICY_EXPECT_NO_REMOVAL: u32 = 1;
+#[cfg(any(target_os = "windows", test))]
+const CM_REMOVAL_POLICY_EXPECT_ORDERLY_REMOVAL: u32 = 2;
+#[cfg(any(target_os = "windows", test))]
+const CM_REMOVAL_POLICY_EXPECT_SURPRISE_REMOVAL: u32 = 3;
+
+#[cfg(any(target_os = "windows", test))]
 fn pnp_node_removability_from_capabilities(capabilities: Option<u32>) -> PnpNodeRemovability {
     match capabilities {
-        Some(flags) if flags & 0x0000_0004 != 0 => PnpNodeRemovability::RemovableFromParent,
+        Some(flags) if flags & CM_DEVCAP_REMOVABLE != 0 => {
+            PnpNodeRemovability::RemovableFromParent
+        },
         Some(_) => PnpNodeRemovability::NotMarkedRemovableFromParent,
         None => PnpNodeRemovability::Unknown,
     }
@@ -45,9 +56,13 @@ fn pnp_node_removability_from_capabilities(capabilities: Option<u32>) -> PnpNode
 #[cfg(any(target_os = "windows", test))]
 fn device_removal_policy_from_value(value: Option<u32>) -> DeviceRemovalPolicy {
     match value {
-        Some(1) => DeviceRemovalPolicy::NoRemovalExpected,
-        Some(2) => DeviceRemovalPolicy::OrderlyRemovalExpected,
-        Some(3) => DeviceRemovalPolicy::SurpriseRemovalExpected,
+        Some(CM_REMOVAL_POLICY_EXPECT_NO_REMOVAL) => DeviceRemovalPolicy::NoRemovalExpected,
+        Some(CM_REMOVAL_POLICY_EXPECT_ORDERLY_REMOVAL) => {
+            DeviceRemovalPolicy::OrderlyRemovalExpected
+        }
+        Some(CM_REMOVAL_POLICY_EXPECT_SURPRISE_REMOVAL) => {
+            DeviceRemovalPolicy::SurpriseRemovalExpected
+        }
         _ => DeviceRemovalPolicy::Unknown,
     }
 }
@@ -156,9 +171,8 @@ trait PresentDiskProvider {
 #[cfg(target_os = "windows")]
 mod windows {
     use super::{
-        DeviceInventory, DeviceRemovalPolicy, EnumerationError, PnpNodeRemovability,
-        PresentDiskProvider, ProviderCandidate, device_removal_policy_from_value,
-        pnp_node_removability_from_capabilities,
+        DeviceInventory, EnumerationError, PresentDiskProvider, ProviderCandidate,
+        device_removal_policy_from_value, pnp_node_removability_from_capabilities,
     };
     use std::{ffi::c_void, mem::size_of, ptr};
 
@@ -170,9 +184,6 @@ mod windows {
     const REG_SZ: u32 = 1;
     const REG_EXPAND_SZ: u32 = 2;
     const REG_DWORD: u32 = 4;
-    const CM_REMOVAL_POLICY_EXPECT_NO_REMOVAL: u32 = 1;
-    const CM_REMOVAL_POLICY_EXPECT_ORDERLY_REMOVAL: u32 = 2;
-    const CM_REMOVAL_POLICY_EXPECT_SURPRISE_REMOVAL: u32 = 3;
     const ERROR_NO_MORE_ITEMS: u32 = 259;
     const MAX_PRESENT_DISK_DEVICES: u32 = 256;
 
