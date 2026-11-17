@@ -393,8 +393,8 @@ mod windows_write_protection {
     use std::{
         ffi::c_void,
         mem::size_of,
-        path::PathBuf,
         os::windows::process::CommandExt,
+        path::PathBuf,
         process::{Command, Stdio},
         ptr, thread,
         time::{Duration, Instant},
