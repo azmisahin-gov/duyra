@@ -165,6 +165,7 @@ pub fn video_adapters() -> Vec<String> {
     Vec::new()
 }
 
+#[cfg(any(target_os = "windows", test))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WritePolicyStatus {
     Enabled,
@@ -184,6 +185,7 @@ fn policy_status_from_value(value: Option<u32>) -> WritePolicyStatus {
     }
 }
 
+#[cfg(any(target_os = "windows", test))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WriteProtectionSupport {
     Supported,
@@ -192,6 +194,7 @@ pub enum WriteProtectionSupport {
     Unknown,
 }
 
+#[cfg(any(target_os = "windows", test))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WindowsWriteProtectionPreflight {
     pub product_name: Option<String>,
@@ -205,7 +208,9 @@ pub struct WindowsWriteProtectionPreflight {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WriteProtectionPreflight {
+    #[cfg(target_os = "windows")]
     Windows(WindowsWriteProtectionPreflight),
+    #[cfg(not(target_os = "windows"))]
     UnsupportedPlatform,
 }
 
@@ -257,10 +262,7 @@ fn assess_write_protection_support(
 
 #[cfg(target_os = "windows")]
 mod windows_write_protection {
-    use super::{
-        WindowsWriteProtectionPreflight, WritePolicyStatus, WriteProtectionSupport,
-        assess_write_protection_support,
-    };
+    use super::{WindowsWriteProtectionPreflight, WritePolicyStatus, assess_write_protection_support};
     use std::{ffi::c_void, mem::size_of, ptr};
 
     type HKey = *mut c_void;
@@ -448,9 +450,10 @@ mod windows_write_protection {
             ));
         }
 
-        let units = data
-            .chunks_exact(2)
-            .map(|bytes| u16::from_le_bytes([bytes[0], bytes[1]]))
+        let (chunks, _remainder) = data.as_chunks::<2>();
+        let units = chunks
+            .iter()
+            .map(|bytes| u16::from_le_bytes(*bytes))
             .take_while(|unit| *unit != 0)
             .collect::<Vec<_>>();
         let value = String::from_utf16_lossy(&units);
