@@ -10,8 +10,9 @@ use crate::{
 
 #[cfg(target_os = "windows")]
 use crate::system::{
-    PolicyAuthorityCheck, PolicyChangeAssessment, WritePolicyStatus, WriteProtectionSupport,
-    inspect_windows_policy_authority, windows_write_protection_summary,
+    PolicyAuthorityCheck, PolicyChangeAssessment, PolicyChangeReadiness, WritePolicyStatus,
+    WriteProtectionSupport, assess_policy_change_readiness, inspect_windows_policy_authority,
+    windows_write_protection_summary,
 };
 
 #[cfg(target_os = "windows")]
@@ -1034,6 +1035,46 @@ fn draw_settings(
                                 .size(11.0)
                                 .strong()
                                 .color(assessment_color),
+                        );
+
+                        let readiness = assess_policy_change_readiness(status, check);
+                        let (readiness_text, readiness_color) = match readiness {
+                            PolicyChangeReadiness::UnsupportedWindows => (
+                                "Windows destek kapsamı doğrulanmadı; işlem kapalı kalır.",
+                                WARNING,
+                            ),
+                            PolicyChangeReadiness::ManagedByOrganization => (
+                                "Kurumsal yönetim sinyali bulundu; DUYRA bu politikayı değiştirmeyi reddeder.",
+                                WARNING,
+                            ),
+                            PolicyChangeReadiness::SourceUnknown => (
+                                "Yönetim kaynağı veya mevcut ayar doğrulanamadı; işlem kapalı kalır.",
+                                WARNING,
+                            ),
+                            PolicyChangeReadiness::ExistingPolicyValue => (
+                                "Mevcut politika değeri bulundu. Kaynağı kesinleşmeden DUYRA bu değerin üzerine yazmaz.",
+                                WARNING,
+                            ),
+                            PolicyChangeReadiness::NotElevated => (
+                                "Yükseltilmiş yetki yok. DUYRA UAC istemez ve kendiliğinden yetki yükseltmez.",
+                                WARNING,
+                            ),
+                            PolicyChangeReadiness::PreconditionsMet => (
+                                "Salt okunur ön koşullar uygun görünüyor. Bu sürüm yine de politika değiştirmez; kapsam onayı ve güvenli geri alma sonraki adımlarda doğrulanacak.",
+                                SUCCESS,
+                            ),
+                        };
+                        ui.add_space(7.0);
+                        ui.label(
+                            RichText::new("POLİTİKA DEĞİŞİKLİĞİ ÖN KOŞULLARI")
+                                .size(10.0)
+                                .strong()
+                                .color(MUTED),
+                        );
+                        ui.label(
+                            RichText::new(readiness_text)
+                                .size(11.0)
+                                .color(readiness_color),
                         );
                     } else if !checking {
                         ui.label(
