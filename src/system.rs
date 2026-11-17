@@ -175,6 +175,7 @@ pub enum WritePolicyStatus {
     Unknown(String),
 }
 
+#[cfg(any(target_os = "windows", test))]
 fn policy_status_from_value(value: Option<u32>) -> WritePolicyStatus {
     match value {
         Some(1) => WritePolicyStatus::Enabled,
@@ -221,6 +222,7 @@ pub fn write_protection_preflight() -> WriteProtectionPreflight {
     }
 }
 
+#[cfg(any(target_os = "windows", test))]
 fn is_supported_windows_edition(edition_id: &str) -> bool {
     let edition_id = edition_id.to_ascii_lowercase();
 
@@ -230,6 +232,7 @@ fn is_supported_windows_edition(edition_id: &str) -> bool {
         || edition_id.starts_with("iotenterprise")
 }
 
+#[cfg(any(target_os = "windows", test))]
 fn assess_write_protection_support(
     edition_id: Option<&str>,
     build_number: Option<u32>,
@@ -601,7 +604,7 @@ mod windows_write_protection {
 mod write_protection_tests {
     use super::{
         WritePolicyStatus, WriteProtectionSupport, assess_write_protection_support,
-        is_supported_windows_edition,
+        is_supported_windows_edition, policy_status_from_value,
     };
 
     #[test]
