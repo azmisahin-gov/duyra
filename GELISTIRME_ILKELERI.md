@@ -240,20 +240,23 @@ Bu bölüm, bilirkişinin ilk kez bir inceleme başlatmasından delil kaynağın
 
 ### 13.3. Delil aygıtı yazma koruması
 
-**Temel tercih donanımsal yazma engelleyicidir.** Yazılımsal koruma, donanımsal engelleyicinin eşdeğeri veya delilin değiştirilemeyeceğine dair tek başına garanti olarak sunulmaz.
+**Ürün yolu yazılımsal yazma koruması üzerine kurulacaktır.** Donanımsal yazma engelleyici zorunlu gereksinim, ilk kurulum şartı veya bilirkişinin başlamasını engelleyen bir koşul değildir. Kurumun elinde zaten varsa ek bir güvenlik katmanı olarak kullanılabilir; DUYRA'nın temel akışı buna bağımlı olmayacaktır.
+
+Yazılımsal koruma da tek başına “delilin değiştirilemezliği” veya adli imaj alma garantisi değildir. DUYRA yalnızca işletim sisteminin ve ilgili aygıtın gerçekten doğrulayabildiği korumayı raporlayacaktır.
 
 Windows için araştırılan yazılımsal seçenek:
 
-- Microsoft'un **Removable Disks: Deny write access** bilgisayar ilkesi, Windows 10 sürüm 1809 ve sonrası için Pro, Enterprise, Education ve IoT Enterprise sürümlerinde belgelenmiştir.
-- Bu ilke çıkarılabilir disk sınıfına yazmayı engeller ve bilgisayar genelinde etki gösterir; yalnızca DUYRA'nın seçtiği tek USB belleğe uygulanmış gibi sunulamaz.
-- Belgelenen destek listesinde Windows Home yer almaz. Home sürümünde aynı koruma garantisi verilmeyecektir.
-- Uygulama bu ilkeyi kullanıcıdan habersiz değiştirmemelidir. İleride etkinleştirme yardımı sunulursa yönetici yetkisi, mevcut ilke, kapsam, diğer çıkarılabilir diskleri etkilemesi ve eski ayarı geri yükleme yöntemi açıkça gösterilmelidir.
-- Koruma durumu, uygulamanın yalnızca kendi ayarına bakılarak değil, işletim sisteminin ve ilgili aygıtın doğrulanabilen durumu üzerinden değerlendirilmelidir.
+- Microsoft'un **Removable Disks: Deny write access** cihaz ilkesi, Windows 10 sürüm 1809 ve sonrası için Pro, Enterprise, Education ve IoT Enterprise sürümlerinde belgelenmiştir. Kaynak: [Microsoft Storage Policy CSP](https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-storage).
+- İlke çıkarılabilir disk sınıfına yazmayı engeller; yalnızca DUYRA'nın seçtiği tek USB belleğe uygulanmış gibi sunulamaz. Diğer çıkarılabilir disklerin yazma davranışını da etkileyebileceği kullanıcıya önceden açıklanmalıdır.
+- Belgelenen destek listesinde Windows Home yer almaz. Home sürümünde bu ilkenin var olduğu veya aynı garantiyi sağladığı varsayılmayacaktır.
+- DUYRA sistem ilkesini kullanıcıdan habersiz değiştirmemelidir. İleride etkinleştirme yardımı sunulursa yönetici yetkisi, mevcut ilke, kapsam, etkilenen diğer aygıtlar ve eski ayarı geri yükleme yöntemi açıkça gösterilmelidir.
+- Koruma durumu, uygulamanın kendi ayarına bakılarak değil, işletim sistemi politikası ve ilgili blok aygıtın salt okunur durumu doğrulanarak değerlendirilmelidir.
 
 Linux için:
 
-- `blockdev --setro` aygıt algılandıktan sonra blok aygıtı salt okunur işaretleyebilir; zaten yazılabilir bağlı bir dosya sistemi bu komutla geriye dönük olarak güvenli hâle gelmez.
-- Bu nedenle Linux'ta aygıt eklenmeden önce uygulanacak ve otomatik bağlama yarışını önleyecek koruma mekanizması ayrıca tasarlanıp gerçek Linux sisteminde test edilmelidir.
+- `blockdev --setro` aygıt algılandıktan sonra blok aygıtı salt okunur işaretleyebilir. Man sayfası, önceden yazılabilir bağlanmış dosya sisteminin bu değişiklikten etkilenmeyebileceğini ve yeniden bağlama gerektiğini açıkça belirtir. Kaynak: [Linux blockdev(8)](https://man7.org/linux/man-pages/man8/blockdev.8.html).
+- Sadece dosya sistemini `ro` bağlamak da her dosya sistemi ve durumda yeterli olmayabilir; örneğin günlük tekrar oynatma yazmaya neden olabilir. Kaynak: [Linux mount(8)](https://www.man7.org/linux/man-pages/man8/mount.8.html).
+- Bu nedenle Linux'ta aygıt keşfi, otomatik bağlama sırası ve blok aygıtını salt okunur yapma adımları ayrıca tasarlanıp gerçek Linux sisteminde test edilmelidir.
 - Linux CI derlemesi ve ekran görüntüsü, Linux delil korumasının veya üretim desteğinin kanıtı değildir.
 
 **Koruma doğrulama kuralı:** Koruma yöntemi, işletim sistemi desteği ve aygıtın salt okunur durumu kanıtlanamıyorsa DUYRA durumu “Koruma doğrulandı” yapmaz ve delil okuma aşamasına geçmez. Testler önce gerçek dava delili olmayan, ayrılmış deneme USB aygıtıyla yapılır.
@@ -273,7 +276,7 @@ Her hedef ayrı kabul ölçütleriyle test edilir. Delil koruması doğrulanmada
 
 ## 14. İlk inceleme kaydı — v0.1.10
 
-**Kod hedefi tamamlandı ve Release yayımlandı; gerçek kullanıcı kabul testi bekliyor.**
+**Kod hedefi ve gerçek kullanıcı kabul testi tamamlandı.**
 
 - PR #1: `İlk inceleme kaydını yerel olarak oluştur ve sakla`; squash merge commit: `43f541ddb308f192eb386493bc9271f9d5903b3e`.
 - Release: [v0.1.10](https://github.com/azmisahin-gov/duyra/releases/tag/v0.1.10). Windows ilk indirme `.exe`, imzalı otomatik güncelleme ZIP'i ve `SHA256SUMS.txt` yayımlandı.
@@ -291,12 +294,32 @@ Her hedef ayrı kabul ölçütleriyle test edilir. Delil koruması doğrulanmada
 - JSON metadata dosyaları şifrelenmiş değildir. Hassas veri, dosya yolu veya dava bilgisi eklenmeden önce şifreleme, yedekleme ve kurtarma hedefi tamamlanmalıdır.
 - USB/delil aygıtı algılama, yazma koruması, kopyalama, hash alma, ses oynatma ve deşifre bu sürümde yoktur. Bu nedenle bu sürüm tek başına gerçek delil medyası incelemesine hazır kabul edilmez.
 
-### Kullanıcı kabul testi
+### Kullanıcı kabul testi — 17 Kasım 2026
 
-1. v0.1.9 kullanan Windows bilgisayarda v0.1.10 güncelleme bildiriminin, altı saatlik kontrol zamanlamasına uygun biçimde görünmesini doğrula.
-2. Kullanıcı onayıyla güncellemeyi kur ve sürüm bilgisinin v0.1.10 olduğunu doğrula.
-3. Gerçek dava/delil bilgisi girmeden iki deneme incelemesi oluştur; numaralarının farklı olduğunu gör.
-4. DUYRA'yı kapatıp yeniden aç; iki kaydın listede kaldığını ve açılabildiğini doğrula.
-5. Kayıt klasörü oluşturma/yazma hatasında uygulamanın sessizce başka konuma kaydetmediğini doğrula.
+Kullanıcı, Windows üzerinde v0.1.9 → v0.1.10 otomatik güncellemesini ve aşağıdaki akışı kendi bilgisayarında gerçek kullanıcı testiyle tamamladı:
 
-Bu test tamamlanmadan ilk inceleme kaydı hedefi kullanıcı kabulü açısından kapatılmaz. Test için gerçek delil veya hassas dava verisi kullanılmaz.
+- Güncelleme bildirimi onaylandı; v0.1.10 kuruldu ve uygulama sorunsuz yeniden başladı.
+- **Yeni İnceleme Başlat** iki kez kullanıldı; birbirinden farklı iki uygulama içi İnceleme No üretildi.
+- Her iki kayıt İncelemeler listesinde **Hazırlanıyor** durumuyla göründü.
+- Kayıtlardan biri **Aç** ile seçildiğinde aşağıdaki **Açık İnceleme** alanında seçili numara gösterildi; diğer kayıt seçildiğinde alan seçime göre değişti.
+- DUYRA kapatılıp yeniden açıldı; Genel Bakış sayacı 2 yerel kayıt gösterdi, Son İncelemeler listesinde iki kayıt kaldı ve İncelemeler sayfasında her iki kayıt tekrar açılabildi.
+- Gerçek delil, dava numarası veya hassas kişisel veri kullanılmadı.
+
+**Kabul sonucu: başarılı.** Bu hedef artık kullanıcı kabulü açısından kapalıdır. Benzer oluşturma/yeniden açma akışı bundan sonra sahte verili CI etkileşim testiyle de otomatikleştirilecek; gerçek Windows sürüm, izin ve kullanıcı ortamı kontrolleri gerektiğinde kullanıcı kabulü ayrıca korunacaktır.
+
+
+## 15. Otomatik inceleme akışı testi ve kullanıcı kabulü
+
+- Kullanıcıdan gelen 17 Kasım 2026 kabul testi, iki ayrı inceleme oluşturma, benzersiz numaralar, kayıtların kalıcılığı, listeleme ve kayıt seçimi davranışlarını doğruladı.
+- Kullanıcı, tekrarlanabilir arayüz akışlarının gerçek dava bilgisi olmadan GitHub Actions içinde otomatik tıklama, test kayıt klasörü, uygulamayı kapatıp yeniden açma, dosya sayısı/içerik kontrolleri ve ekran görüntüsü artifact'larıyla doğrulanmasını istedi.
+- Sıradaki küçük hedef: Linux görsel CI'ye **sahte verili İnceleme Akışı Smoke Testi** eklemek. Test uygulamayı başlatacak, iki inceleme oluşturacak, uygulamayı yeniden başlatacak, kayıtların geri geldiğini ve seçimin ekrana yansıdığını doğrulayacak. Test verisi yalnızca geçici CI klasöründe tutulacak; Release ve kullanıcı verisine dokunulmayacak.
+- Linux Xvfb/llvmpipe testi ortak egui kullanıcı akışının otomatik regresyon kontrolüdür; Windows işletim sistemi politikası, Windows izinleri, gerçek USB davranışı veya Windows yerel grafik sürücüsü için kanıt sayılmaz.
+- Windows gerçek kullanıcı kabulünü ancak işletim sistemi/aygıt davranışı veya Windows'a özgü kullanıcı deneyimi gerektiğinde isteyeceğiz. Kullanıcıdan gerçek delil veya hassas ekran görüntüsü istenmeyecek.
+- Test başarısız olursa log, JSON kayıtları ve ekran görüntüsü CI artifact'ında saklanır; hata kaynağı uygulama mı test ortamı mı ayrıştırılır.
+
+### Yazılım öncelikli koruma kararı
+
+- Ürün yazılımsal yazma koruması üzerine ilerleyecek; donanımsal yazma engelleyici zorunlu ürün gereksinimi değildir.
+- Donanım engelleyici mevcut olduğunda ek bir kontrol olarak kullanılabilir, ancak yazılım akışının çalışması için şart koşulmaz.
+- Yazılımsal koruma etkinleştirilirken bilgisayara veya bilirkişinin mevcut iş akışına zarar verebilecek sessiz/geniş kapsamlı sistem değişikliği yapılmaz. Özellikle Windows'un çıkarılabilir disk ilkesi sistem kapsamını etkileyebildiği için kullanıcı onayı ve etki açıklaması gerekir.
+- Yazılım ile kanıtlanabilir koruma sağlanamıyorsa DUYRA başarısız/uyumsuz durumu açıkça bildirir; koruma doğrulanmış gibi göstermeden delil kaynağına erişim açılmaz.
