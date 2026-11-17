@@ -297,19 +297,16 @@ mod windows {
                 return Err(EnumerationError::Failed);
             }
 
-            let display_name = read_string_property(
-                device_info_set,
-                &mut device_info_data,
-                SPDRP_FRIENDLYNAME,
-            )
-            .or_else(|| {
-                read_string_property(
-                    device_info_set,
-                    &mut device_info_data,
-                    SPDRP_DEVICEDESC,
-                )
-            })
-            .unwrap_or_else(|| "Disk aygıtı (adı alınamadı)".to_owned());
+            let display_name =
+                read_string_property(device_info_set, &mut device_info_data, SPDRP_FRIENDLYNAME)
+                    .or_else(|| {
+                        read_string_property(
+                            device_info_set,
+                            &mut device_info_data,
+                            SPDRP_DEVICEDESC,
+                        )
+                    })
+                    .unwrap_or_else(|| "Disk aygıtı (adı alınamadı)".to_owned());
 
             let removability = match read_capabilities(device_info_set, &mut device_info_data) {
                 Some(capabilities) if capabilities & CM_DEVCAP_REMOVABLE != 0 => {
@@ -458,6 +455,11 @@ mod tests {
         let inventory = DeviceInventory::discover_present_disks();
         assert_ne!(inventory.state, InventoryState::Unknown);
         assert_ne!(inventory.state, InventoryState::NotScanned);
-        assert!(inventory.candidates.iter().all(|candidate| candidate.row < 256));
+        assert!(
+            inventory
+                .candidates
+                .iter()
+                .all(|candidate| candidate.row < 256)
+        );
     }
 }
