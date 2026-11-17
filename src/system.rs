@@ -662,9 +662,7 @@ mod windows_preflight_tests {
         let second = write_protection_preflight();
 
         assert_eq!(first, second);
-        let status = match first {
-            super::WriteProtectionPreflight::Windows(status) => status,
-        };
+        let super::WriteProtectionPreflight::Windows(status) = first;
 
         assert!(
             status
