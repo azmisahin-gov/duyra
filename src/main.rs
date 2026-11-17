@@ -3,8 +3,6 @@
 mod app;
 mod diagnostics;
 
-// Kaynak aygıtı envanteri şimdilik yalnızca sahte sağlayıcı test modelidir.
-#[cfg(test)]
 mod device_inventory;
 mod examinations;
 mod icon;

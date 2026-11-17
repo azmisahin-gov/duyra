@@ -1,148 +1,358 @@
-//! Kaynak aygıtı keşfi için gerçek sistem erişimi içermeyen durum modeli.
+//! Windows üzerinde bağlı disk aygıtlarını yalnızca PnP özelliklerinden listeler.
 //!
-//! Bu modül yalnızca test derlemesine eklenir. PnP/SetupAPI, disk tanıtıcısı,
-//! DeviceIoControl, BLKROGET, mount veya Registry çağrısı yapmaz.
+//! Bu modül hiçbir fiziksel disk/volume tanıtıcısı açmaz. Dosya sistemi,
+//! bölüm veya sektör okumaz; aygıta ya da Windows politikasına yazmaz.
+//! Benzersiz aygıt kimlikleri, yollar ve seri numaraları bu modele alınmaz.
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum DeviceClass {
-    Removable,
-    Fixed,
-    Other,
-    Unknown,
-}
-
-#[derive(Clone, PartialEq, Eq)]
-struct ProviderCandidate {
-    display_name: String,
-    class: DeviceClass,
-}
-
-trait PresentDeviceProvider {
-    fn enumerate_present(&self) -> Result<Vec<ProviderCandidate>, EnumerationError>;
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum EnumerationError {
-    Unsupported,
-    AccessDenied,
-    Unavailable,
-    Failed,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum DiscoveryState {
+pub enum InventoryState {
+    NotScanned,
+    // Windows disk taraması desteklenir; bu durum yalnızca diğer platformlarda üretilir.
+    #[cfg_attr(target_os = "windows", allow(dead_code))]
     Unsupported,
     NoCandidates,
     CandidatesFound,
     Unknown,
 }
 
-#[derive(Clone, PartialEq, Eq)]
-struct DeviceCandidate {
-    /// Yalnızca o envanter görüntüsünde geçerli geçici satır numarasıdır.
-    /// Kalıcı kimlik, aygıt yolu, PnP instance ID veya seri numarası değildir.
-    row: usize,
-    display_name: String,
-    class: DeviceClass,
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PnpRemovability {
+    ReportedRemovable,
+    NotConfirmed,
 }
 
 #[derive(Clone, PartialEq, Eq)]
-struct DeviceInventory {
-    state: DiscoveryState,
-    candidates: Vec<DeviceCandidate>,
-    diagnostic_code: &'static str,
+pub struct DiskCandidate {
+    /// Yalnızca ekrandaki geçici satır numarasıdır; kalıcı aygıt kimliği değildir.
+    pub row: usize,
+    /// Windows dost ad/aygıt açıklaması; yerel ekranda gösterilir, kaydedilmez.
+    pub display_name: String,
+    /// PnP devnode yeteneğidir; çıkarılabilir disk politikası kapsamını kanıtlamaz.
+    pub removability: PnpRemovability,
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub struct DeviceInventory {
+    pub state: InventoryState,
+    pub candidates: Vec<DiskCandidate>,
 }
 
 impl DeviceInventory {
-    fn enumerate(provider: &impl PresentDeviceProvider) -> Self {
+    pub fn not_scanned() -> Self {
+        Self {
+            state: InventoryState::NotScanned,
+            candidates: Vec::new(),
+        }
+    }
+
+    pub fn discover_present_disks() -> Self {
+        #[cfg(target_os = "windows")]
+        {
+            windows::discover_present_disks()
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            Self {
+                state: InventoryState::Unsupported,
+                candidates: Vec::new(),
+            }
+        }
+    }
+
+    #[cfg(any(target_os = "windows", test))]
+    fn from_provider(provider: &impl PresentDiskProvider) -> Self {
         match provider.enumerate_present() {
             Ok(items) if items.is_empty() => Self {
-                state: DiscoveryState::NoCandidates,
+                state: InventoryState::NoCandidates,
                 candidates: Vec::new(),
-                diagnostic_code: "device_inventory_no_candidates",
             },
             Ok(items) => {
                 let candidates = items
                     .into_iter()
                     .enumerate()
-                    .map(|(row, item)| DeviceCandidate {
+                    .map(|(row, item)| DiskCandidate {
                         row,
                         display_name: item.display_name,
-                        class: item.class,
+                        removability: item.removability,
                     })
                     .collect();
 
                 Self {
-                    state: DiscoveryState::CandidatesFound,
+                    state: InventoryState::CandidatesFound,
                     candidates,
-                    diagnostic_code: "device_inventory_candidates_found",
                 }
             }
-            Err(EnumerationError::Unsupported) => Self {
-                state: DiscoveryState::Unsupported,
-                candidates: Vec::new(),
-                diagnostic_code: "device_inventory_unsupported",
-            },
             Err(_) => Self {
-                state: DiscoveryState::Unknown,
+                state: InventoryState::Unknown,
                 candidates: Vec::new(),
-                diagnostic_code: "device_inventory_unknown",
             },
         }
     }
-}
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum ReadOnlyObservation {
-    ReportedReadOnly,
-    ReportedWritable,
-    Unsupported,
-    Unknown,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum WindowsWriteabilityResult {
-    WriteProtected,
-    Writable,
-    Unsupported,
-    AccessDenied,
-    Failed,
-}
-
-fn observe_windows_writeability(result: WindowsWriteabilityResult) -> ReadOnlyObservation {
-    match result {
-        WindowsWriteabilityResult::WriteProtected => ReadOnlyObservation::ReportedReadOnly,
-        WindowsWriteabilityResult::Writable => ReadOnlyObservation::ReportedWritable,
-        WindowsWriteabilityResult::Unsupported => ReadOnlyObservation::Unsupported,
-        WindowsWriteabilityResult::AccessDenied | WindowsWriteabilityResult::Failed => {
-            ReadOnlyObservation::Unknown
+    pub fn state_label(&self) -> &'static str {
+        match self.state {
+            InventoryState::NotScanned => "Henüz tarama yapılmadı",
+            InventoryState::Unsupported => "Bu işletim sisteminde desteklenmiyor",
+            InventoryState::NoCandidates => "Bağlı disk aygıtı bulunamadı",
+            InventoryState::CandidatesFound => "Bağlı disk aygıtları listelendi",
+            InventoryState::Unknown => "Aygıt listesi alınamadı",
         }
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum LinuxBlockReadOnlyResult {
-    ReadOnly,
-    Writable,
-    Unsupported,
+#[cfg(any(target_os = "windows", test))]
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum EnumerationError {
     Failed,
 }
 
-fn observe_linux_block_read_only(result: LinuxBlockReadOnlyResult) -> ReadOnlyObservation {
-    match result {
-        LinuxBlockReadOnlyResult::ReadOnly => ReadOnlyObservation::ReportedReadOnly,
-        LinuxBlockReadOnlyResult::Writable => ReadOnlyObservation::ReportedWritable,
-        LinuxBlockReadOnlyResult::Unsupported => ReadOnlyObservation::Unsupported,
-        LinuxBlockReadOnlyResult::Failed => ReadOnlyObservation::Unknown,
-    }
+#[cfg(any(target_os = "windows", test))]
+struct ProviderCandidate {
+    display_name: String,
+    removability: PnpRemovability,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum FilesystemMountObservation {
-    NotMounted,
-    MountedReadOnly,
-    MountedWritable,
-    Unknown,
+#[cfg(any(target_os = "windows", test))]
+trait PresentDiskProvider {
+    fn enumerate_present(&self) -> Result<Vec<ProviderCandidate>, EnumerationError>;
+}
+
+#[cfg(target_os = "windows")]
+mod windows {
+    use super::{
+        DeviceInventory, EnumerationError, PnpRemovability, PresentDiskProvider, ProviderCandidate,
+    };
+    use std::{ffi::c_void, mem::size_of, ptr};
+
+    const DIGCF_PRESENT: u32 = 0x0000_0002;
+    const SPDRP_DEVICEDESC: u32 = 0x0000_0000;
+    const SPDRP_FRIENDLYNAME: u32 = 0x0000_000C;
+    const SPDRP_CAPABILITIES: u32 = 0x0000_000F;
+    const REG_SZ: u32 = 1;
+    const REG_EXPAND_SZ: u32 = 2;
+    const REG_DWORD: u32 = 4;
+    const CM_DEVCAP_REMOVABLE: u32 = 0x0000_0004;
+    const ERROR_NO_MORE_ITEMS: u32 = 259;
+    const MAX_PRESENT_DISK_DEVICES: u32 = 256;
+
+    type DeviceInfoSet = *mut c_void;
+
+    #[repr(C)]
+    struct Guid {
+        data1: u32,
+        data2: u16,
+        data3: u16,
+        data4: [u8; 8],
+    }
+
+    #[repr(C)]
+    struct SpDevInfoData {
+        cb_size: u32,
+        class_guid: Guid,
+        dev_inst: u32,
+        reserved: usize,
+    }
+
+    const GUID_DEVCLASS_DISKDRIVE: Guid = Guid {
+        data1: 0x4d36_e967,
+        data2: 0xe325,
+        data3: 0x11ce,
+        data4: [0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18],
+    };
+
+    #[link(name = "setupapi")]
+    unsafe extern "system" {
+        fn SetupDiGetClassDevsW(
+            class_guid: *const Guid,
+            enumerator: *const u16,
+            hwnd_parent: *mut c_void,
+            flags: u32,
+        ) -> DeviceInfoSet;
+
+        fn SetupDiEnumDeviceInfo(
+            device_info_set: DeviceInfoSet,
+            member_index: u32,
+            device_info_data: *mut SpDevInfoData,
+        ) -> i32;
+
+        fn SetupDiGetDeviceRegistryPropertyW(
+            device_info_set: DeviceInfoSet,
+            device_info_data: *mut SpDevInfoData,
+            property: u32,
+            property_reg_data_type: *mut u32,
+            property_buffer: *mut u8,
+            property_buffer_size: u32,
+            required_size: *mut u32,
+        ) -> i32;
+
+        fn SetupDiDestroyDeviceInfoList(device_info_set: DeviceInfoSet) -> i32;
+    }
+
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        fn GetLastError() -> u32;
+    }
+
+    fn empty_device_info_data() -> SpDevInfoData {
+        SpDevInfoData {
+            cb_size: size_of::<SpDevInfoData>() as u32,
+            class_guid: Guid {
+                data1: 0,
+                data2: 0,
+                data3: 0,
+                data4: [0; 8],
+            },
+            dev_inst: 0,
+            reserved: 0,
+        }
+    }
+
+    fn read_string_property(
+        device_info_set: DeviceInfoSet,
+        device_info_data: &mut SpDevInfoData,
+        property: u32,
+    ) -> Option<String> {
+        let mut buffer = [0u16; 512];
+        let mut data_type = 0u32;
+        let mut required_size = 0u32;
+
+        let success = unsafe {
+            SetupDiGetDeviceRegistryPropertyW(
+                device_info_set,
+                device_info_data,
+                property,
+                &mut data_type,
+                buffer.as_mut_ptr().cast::<u8>(),
+                (size_of::<u16>() * buffer.len()) as u32,
+                &mut required_size,
+            )
+        };
+
+        if success == 0 || (data_type != REG_SZ && data_type != REG_EXPAND_SZ) {
+            return None;
+        }
+
+        let end = buffer
+            .iter()
+            .position(|unit| *unit == 0)
+            .unwrap_or(buffer.len());
+        let value = String::from_utf16_lossy(&buffer[..end]);
+        let value = value
+            .chars()
+            .filter(|character| !character.is_control())
+            .take(128)
+            .collect::<String>();
+        let value = value.split_whitespace().collect::<Vec<_>>().join(" ");
+
+        (!value.is_empty()).then_some(value)
+    }
+
+    fn read_capabilities(
+        device_info_set: DeviceInfoSet,
+        device_info_data: &mut SpDevInfoData,
+    ) -> Option<u32> {
+        let mut buffer = [0u8; size_of::<u32>()];
+        let mut data_type = 0u32;
+        let mut required_size = 0u32;
+
+        let success = unsafe {
+            SetupDiGetDeviceRegistryPropertyW(
+                device_info_set,
+                device_info_data,
+                SPDRP_CAPABILITIES,
+                &mut data_type,
+                buffer.as_mut_ptr(),
+                buffer.len() as u32,
+                &mut required_size,
+            )
+        };
+
+        if success == 0 || data_type != REG_DWORD || required_size != size_of::<u32>() as u32 {
+            return None;
+        }
+
+        Some(u32::from_le_bytes(buffer))
+    }
+
+    fn enumerate_device_set(
+        device_info_set: DeviceInfoSet,
+    ) -> Result<Vec<ProviderCandidate>, EnumerationError> {
+        let mut candidates: Vec<ProviderCandidate> = Vec::new();
+
+        for member_index in 0..MAX_PRESENT_DISK_DEVICES {
+            let mut device_info_data = empty_device_info_data();
+            let found = unsafe {
+                SetupDiEnumDeviceInfo(device_info_set, member_index, &mut device_info_data)
+            };
+
+            if found == 0 {
+                let error = unsafe { GetLastError() };
+                if error == ERROR_NO_MORE_ITEMS {
+                    break;
+                }
+                return Err(EnumerationError::Failed);
+            }
+
+            let display_name =
+                read_string_property(device_info_set, &mut device_info_data, SPDRP_FRIENDLYNAME)
+                    .or_else(|| {
+                        read_string_property(
+                            device_info_set,
+                            &mut device_info_data,
+                            SPDRP_DEVICEDESC,
+                        )
+                    })
+                    .unwrap_or_else(|| "Disk aygıtı (adı alınamadı)".to_owned());
+
+            let removability = match read_capabilities(device_info_set, &mut device_info_data) {
+                Some(capabilities) if capabilities & CM_DEVCAP_REMOVABLE != 0 => {
+                    PnpRemovability::ReportedRemovable
+                }
+                _ => PnpRemovability::NotConfirmed,
+            };
+
+            candidates.push(ProviderCandidate {
+                display_name,
+                removability,
+            });
+        }
+
+        if candidates.len() == MAX_PRESENT_DISK_DEVICES as usize {
+            return Err(EnumerationError::Failed);
+        }
+
+        Ok(candidates)
+    }
+
+    struct WindowsDiskProvider;
+
+    impl PresentDiskProvider for WindowsDiskProvider {
+        fn enumerate_present(&self) -> Result<Vec<ProviderCandidate>, EnumerationError> {
+            let device_info_set = unsafe {
+                SetupDiGetClassDevsW(
+                    &GUID_DEVCLASS_DISKDRIVE,
+                    ptr::null(),
+                    ptr::null_mut(),
+                    DIGCF_PRESENT,
+                )
+            };
+
+            if device_info_set.is_null() || device_info_set == (-1isize as DeviceInfoSet) {
+                return Err(EnumerationError::Failed);
+            }
+
+            let result = enumerate_device_set(device_info_set);
+            unsafe {
+                SetupDiDestroyDeviceInfoList(device_info_set);
+            }
+            result
+        }
+    }
+
+    pub(super) fn discover_present_disks() -> DeviceInventory {
+        DeviceInventory::from_provider(&WindowsDiskProvider)
+    }
 }
 
 #[cfg(test)]
@@ -153,17 +363,33 @@ mod tests {
         result: Result<Vec<ProviderCandidate>, EnumerationError>,
     }
 
-    impl PresentDeviceProvider for FakeProvider {
+    impl PresentDiskProvider for FakeProvider {
         fn enumerate_present(&self) -> Result<Vec<ProviderCandidate>, EnumerationError> {
-            self.result.clone()
+            match &self.result {
+                Ok(items) => Ok(items
+                    .iter()
+                    .map(|item| ProviderCandidate {
+                        display_name: item.display_name.clone(),
+                        removability: item.removability,
+                    })
+                    .collect()),
+                Err(error) => Err(*error),
+            }
         }
     }
 
-    fn candidate(name: &str, class: DeviceClass) -> ProviderCandidate {
+    fn candidate(name: &str, removability: PnpRemovability) -> ProviderCandidate {
         ProviderCandidate {
             display_name: name.to_owned(),
-            class,
+            removability,
         }
+    }
+
+    #[test]
+    fn not_scanned_state_is_distinct() {
+        let inventory = DeviceInventory::not_scanned();
+        assert_eq!(inventory.state, InventoryState::NotScanned);
+        assert!(inventory.candidates.is_empty());
     }
 
     #[test]
@@ -171,143 +397,59 @@ mod tests {
         let provider = FakeProvider {
             result: Ok(Vec::new()),
         };
-        let inventory = DeviceInventory::enumerate(&provider);
+        let inventory = DeviceInventory::from_provider(&provider);
 
-        assert_eq!(inventory.state, DiscoveryState::NoCandidates);
+        assert_eq!(inventory.state, InventoryState::NoCandidates);
         assert!(inventory.candidates.is_empty());
-        assert_eq!(inventory.diagnostic_code, "device_inventory_no_candidates");
     }
 
     #[test]
-    fn present_candidates_are_listed_without_automatic_selection() {
+    fn candidates_keep_temporary_rows_and_display_names() {
         let provider = FakeProvider {
             result: Ok(vec![
-                candidate("USB bellek", DeviceClass::Removable),
-                candidate("USB disk", DeviceClass::Fixed),
-                candidate("Diğer aygıt", DeviceClass::Other),
+                candidate("USB bellek", PnpRemovability::ReportedRemovable),
+                candidate("USB disk", PnpRemovability::NotConfirmed),
             ]),
         };
-        let inventory = DeviceInventory::enumerate(&provider);
+        let inventory = DeviceInventory::from_provider(&provider);
 
-        assert_eq!(inventory.state, DiscoveryState::CandidatesFound);
-        assert_eq!(inventory.candidates.len(), 3);
-        assert_eq!(inventory.candidates[0].display_name, "USB bellek");
+        assert_eq!(inventory.state, InventoryState::CandidatesFound);
+        assert_eq!(inventory.candidates.len(), 2);
         assert_eq!(inventory.candidates[0].row, 0);
-        assert_eq!(inventory.candidates[1].row, 1);
-        assert_eq!(inventory.candidates[0].class, DeviceClass::Removable);
-        assert_eq!(inventory.candidates[1].class, DeviceClass::Fixed);
-        assert_eq!(inventory.candidates[2].class, DeviceClass::Other);
-    }
-
-    #[test]
-    fn unknown_device_class_is_preserved_instead_of_guessed() {
-        let provider = FakeProvider {
-            result: Ok(vec![candidate("Bilinmeyen aygıt", DeviceClass::Unknown)]),
-        };
-        let inventory = DeviceInventory::enumerate(&provider);
-
-        assert_eq!(inventory.state, DiscoveryState::CandidatesFound);
-        assert_eq!(inventory.candidates[0].class, DeviceClass::Unknown);
-    }
-
-    #[test]
-    fn unsupported_enumeration_is_not_reported_as_an_empty_inventory() {
-        let provider = FakeProvider {
-            result: Err(EnumerationError::Unsupported),
-        };
-        let inventory = DeviceInventory::enumerate(&provider);
-
-        assert_eq!(inventory.state, DiscoveryState::Unsupported);
-        assert!(inventory.candidates.is_empty());
-        assert_eq!(inventory.diagnostic_code, "device_inventory_unsupported");
+        assert_eq!(inventory.candidates[0].display_name, "USB bellek");
+        assert_eq!(
+            inventory.candidates[0].removability,
+            PnpRemovability::ReportedRemovable
+        );
+        assert_eq!(
+            inventory.candidates[1].removability,
+            PnpRemovability::NotConfirmed
+        );
     }
 
     #[test]
     fn enumeration_errors_fail_closed_as_unknown() {
-        for error in [
-            EnumerationError::AccessDenied,
-            EnumerationError::Unavailable,
-            EnumerationError::Failed,
-        ] {
-            let provider = FakeProvider { result: Err(error) };
-            let inventory = DeviceInventory::enumerate(&provider);
+        let failed = FakeProvider {
+            result: Err(EnumerationError::Failed),
+        };
 
-            assert_eq!(inventory.state, DiscoveryState::Unknown);
-            assert!(inventory.candidates.is_empty());
-            assert_eq!(inventory.diagnostic_code, "device_inventory_unknown");
-        }
-    }
-
-    #[test]
-    fn windows_write_protected_result_is_reported_as_observation_only() {
         assert_eq!(
-            observe_windows_writeability(WindowsWriteabilityResult::WriteProtected),
-            ReadOnlyObservation::ReportedReadOnly
+            DeviceInventory::from_provider(&failed).state,
+            InventoryState::Unknown
         );
     }
 
+    #[cfg(target_os = "windows")]
     #[test]
-    fn windows_access_or_query_errors_never_become_read_only() {
-        assert_eq!(
-            observe_windows_writeability(WindowsWriteabilityResult::AccessDenied),
-            ReadOnlyObservation::Unknown
-        );
-        assert_eq!(
-            observe_windows_writeability(WindowsWriteabilityResult::Failed),
-            ReadOnlyObservation::Unknown
-        );
-        assert_eq!(
-            observe_windows_writeability(WindowsWriteabilityResult::Unsupported),
-            ReadOnlyObservation::Unsupported
-        );
-    }
-
-    #[test]
-    fn linux_block_flag_is_mapped_separately_from_mount_state() {
-        let block_state = observe_linux_block_read_only(LinuxBlockReadOnlyResult::ReadOnly);
-        let mount_state = FilesystemMountObservation::MountedWritable;
-
-        assert_eq!(block_state, ReadOnlyObservation::ReportedReadOnly);
-        assert_eq!(mount_state, FilesystemMountObservation::MountedWritable);
-    }
-
-    #[test]
-    fn unsupported_and_failed_block_queries_remain_distinct() {
-        assert_eq!(
-            observe_linux_block_read_only(LinuxBlockReadOnlyResult::Unsupported),
-            ReadOnlyObservation::Unsupported
-        );
-        assert_eq!(
-            observe_linux_block_read_only(LinuxBlockReadOnlyResult::Failed),
-            ReadOnlyObservation::Unknown
-        );
-    }
-
-    #[test]
-    fn writable_observations_are_not_converted_to_read_only() {
-        assert_eq!(
-            observe_windows_writeability(WindowsWriteabilityResult::Writable),
-            ReadOnlyObservation::ReportedWritable
-        );
-        assert_eq!(
-            observe_linux_block_read_only(LinuxBlockReadOnlyResult::Writable),
-            ReadOnlyObservation::ReportedWritable
-        );
-    }
-
-    #[test]
-    fn mount_state_is_retained_as_an_independent_observation() {
-        let states = [
-            FilesystemMountObservation::NotMounted,
-            FilesystemMountObservation::MountedReadOnly,
-            FilesystemMountObservation::MountedWritable,
-            FilesystemMountObservation::Unknown,
-        ];
-
-        assert_eq!(states.len(), 4);
-        assert_ne!(
-            FilesystemMountObservation::MountedReadOnly,
-            FilesystemMountObservation::MountedWritable
+    fn windows_present_disk_inventory_can_be_queried_without_opening_a_disk() {
+        let inventory = DeviceInventory::discover_present_disks();
+        assert_ne!(inventory.state, InventoryState::Unknown);
+        assert_ne!(inventory.state, InventoryState::NotScanned);
+        assert!(
+            inventory
+                .candidates
+                .iter()
+                .all(|candidate| candidate.row < 256)
         );
     }
 }
