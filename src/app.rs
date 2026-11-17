@@ -1322,7 +1322,11 @@ fn draw_evidence(
                         );
                         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                             let is_selected = *selected_device_row == Some(candidate.row);
-                            let button_label = if is_selected { "Seçildi" } else { "Bu aygıtı seç" };
+                            let button_label = if is_selected {
+                                "Seçildi"
+                            } else {
+                                "Bu aygıtı seç"
+                            };
                             if ui.button(button_label).clicked() {
                                 *selected_device_row = Some(candidate.row);
                             }
