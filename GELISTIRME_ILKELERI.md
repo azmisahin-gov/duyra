@@ -121,24 +121,16 @@ Otomatik güncelleme için kabul testi:
 
 ## 10. Şu anki hedef
 
-**Mevcut hedef: v0.1.9 otomatik güncellemeyi altı saatlik kontrol ve kullanıcı onayıyla güvenli hâle getirmek.**
+**Mevcut hedef: Windows CI üzerinde DUYRA ana ekranının otomatik görüntüsünü alıp inceleyebilmek.**
 
-- v0.1.7 ana çalışma alanı kullanıcı bilgisayarında açıldı ve ekran görüntüsüyle incelendi.
-- Kullanıcı ekranında bazı Unicode simgelerin yazı tipi nedeniyle boş/kutu karakter olarak göründüğü ve alt durum çubuğundaki metinlerin birbirine yaklaştığı görüldü.
-- Bu hedefte simgeler yazı tipine bağlı olmayan yerel çizimlerle gösterilir ve alt durum çubuğu aralıkları düzeltilir.
-- Windows CI kontrolleri, testler ve derleme başarılı olmalı; v0.1.8 Release yayımlanmalıdır.
-- v0.1.7'den v0.1.8'e gerçek güncelleme kullanıcı bilgisayarında gerçekleşti; kullanıcı uygulama açıkken yeni sürümün gelmediğini, kapatıp yeniden açınca güncellemenin otomatik uygulandığını bildirdi. Bu, mevcut açılışta tek seferlik kontrol davranışıyla uyumludur.
-- 1920×1080 ekrandan gönderilen ilk açılış görüntüsünde simgeler düzgün, alt durum çubuğu aralıklı görünmektedir; v0.1.8 görsel düzeltmeleri gerçek kullanıcı ekranında doğrulanmıştır.
-- İlk açılışta pencere ekranın sol üst tarafına yakın konumlanmıştır. Bu konum davranışı kaydedilmiş, merkezleme/son konumu hatırlama tercihi ayrı değerlendirmeye bırakılmıştır.
-- v0.1.8 görsel düzeltmeleri 1920×1080 gerçek kullanıcı ekranında doğrulandı; bozuk simgeler ve alt durum çubuğu aralığı düzeldi.
-- v0.1.7 → v0.1.8 güncellemesi, uygulama yeniden açıldığında gerçekleşti. Bu deneyim mevcut açılışta tek seferlik kontrol davranışını doğruladı.
-- Bu hedefte kontrol aralığı 6 saat olacak; yeni sürüm bulunduğunda kullanıcıya bildirim gösterilecek. Kurulum ancak "Şimdi güncelle" onayıyla başlayacak; "Daha sonra" güncellemeyi sonraki denetime erteleyecek.
-- Açık işler varken otomatik boşta-kalma kurulumunu belirlemek için henüz inceleme/işlem durum modeli bulunmadığından, bu sürüm sessiz kurulum yapmayacak. İş bittiğinde otomatik kurulum tercihi, aktif çalışma modeli geliştirildiğinde ayrı olarak ele alınacaktır.
-- Windows CI kontrolleri, testler ve derleme başarılı olmalı; v0.1.9 Release yayımlanmalıdır.
-- v0.1.9 için CI'nin biçim, Clippy, test, Windows x64 derleme, dosya bilgisi, imzalı paket üretimi ve Release adımlarının tamamı başarılı oldu (Actions run 43985862485).
-- Kullanıcı v0.1.8'den v0.1.9'a geçişi uygulamayı kapatıp yeniden açarak tamamladı; v0.1.9 ana ekranı gerçek kullanıcı görüntüsünde açıldı ve alt durum çubuğunda "DUYRA güncel" görüldü.
-- Bu geçiş eski v0.1.8 güncelleyicisinin açılışta otomatik kurulum davranışıyla yapıldı. v0.1.9'in yeni "Şimdi güncelle / Daha sonra" bildirim akışı henüz daha yeni bir sürüm yayımlanmadığı için kullanıcı ekranında denenmedi; sonraki gerçek sürümde ayrıca kabul testi yapılmalıdır. Sırf test için boş sürüm yayımlanmaz.
-- v0.1.8 hedefi doğrulandığı için bu güncelleyici hedefi başlamıştır; bu hedef doğrulanmadan CI ekran görüntüsü otomasyonu veya delil/deşifre özelliklerine geçilmez.
+- v0.1.7 ana çalışma alanı yayımlandı; kullanıcı ekranında görülen simge ve alt durum çubuğu kusurları v0.1.8 ile düzeltildi ve 1920×1080 gerçek ekranda doğrulandı.
+- v0.1.8 → v0.1.9 güncellemesi gerçek kullanıcı bilgisayarında, uygulama kapatılıp yeniden açıldığında tamamlandı.
+- v0.1.9 güncelleyici değişikliği CI kontrollerinden geçti ve Release yayımlandı. Altı saatlik kontrol, kullanıcı onayıyla kurulum ve erteleme kodda bulunuyor.
+- v0.1.9'in yeni "Şimdi güncelle / Daha sonra" bildirimini kullanıcı ekranında doğrulamak için daha yeni bir gerçek sürüm gerekir. Sırf test için boş Release yayımlanmaz; bu kabul testi sonraki doğal sürümde yapılacaktır.
+- Şimdiki teknik deneme, GitHub Actions Windows makinesinde DUYRA penceresinin açılıp PNG olarak yakalanıp yakalanamayacağını ölçer. İlk deneme Actions run 43987188203 üzerinden izlenmektedir.
+- Görüntü alınabilse bile bu, kullanıcının kendi bilgisayarındaki son görsel kabul testinin yerine geçmez. Kullanıcı bilgisayarı ile CI ortamının çözünürlüğü ve grafik sürücüsü farklı olabilir.
+- CI ekran yakalama yöntemi güvenilir değilse zorlanmaz; kullanıcıdan ekran görüntüsü alma yöntemi devam eder. Gerekirse etkileşimli Windows runner seçeneği ayrıca değerlendirilir.
+- Bu hedef doğrulanmadan yeni delil/deşifre özelliklerine geçilmez.
 
 ## 11. Kapsamı küçük tutma
 
@@ -153,27 +145,26 @@ Bu bölüm sıradaki işleri görünür kılar; işler mevcut hedef tamamlanmada
 
 ### 12.1. Otomatik güncelleyiciyi güvenli hâle getirme
 
-**v0.1.9 hedefi:** Güncelleme kontrolü altı saat aralıkla yapılır; yeni sürüm otomatik kurulmaz, kullanıcıya bildirilir ve kurulum için açık onay beklenir.
+**Kod hedefi v0.1.9'da uygulandı ve CI'dan geçti.** Gerçek kullanıcıda v0.1.8 → v0.1.9 ilk geçişi, v0.1.8'in eski açılışta otomatik güncelleme davranışıyla yapıldı. Yeni bildirim akışı henüz daha yeni bir Release olmadığı için gerçek kullanıcı ekranında sınanmadı.
 
-Uygulanacak davranış:
+Uygulanan davranış:
 
-- İlk açılışta son başarılı kontrolün üzerinden en az altı saat geçmişse kontrol yapılır. Kontrol zamanı kullanıcı uygulama verisi altında saklanır; sık açma/kapatma gereksiz API istekleri oluşturmaz.
-- DUYRA açık kaldığında da altı saatlik aralık dolunca yeni kontrol yapılır. Zamanlama küçük bir rastgele gecikmeyle dağıtılır.
-- Geçici hatalarda artan bekleme uygulanır; GitHub 403/429 hız sınırı yanıtlarında sunucunun bildirdiği yeniden deneme süresine uyulur.
-- Yeni sürüm bulunduğunda alt durum çubuğunda sürüm bilgisi ve iki seçenek gösterilir: "Şimdi güncelle" ve "Daha sonra".
-- "Şimdi güncelle" açık kullanıcı onayıdır. Bu işlemden sonra paket indirilir; SHA-256 bütünlüğü ve gömülü Ed25519 imzası doğrulanır; kurulum başarılı olursa uygulama yeniden başlatılır.
-- "Daha sonra" kurulum yapmaz. Bildirim bir sonraki altı saatlik kontrolde yeniden gösterilebilir.
-- Kullanıcı onayı olmadan uygulama kendi kendine kapanmaz, kurulum yapmaz veya yeniden başlatılmaz.
-- Güncelleme hatasında mevcut sürüm çalışmaya devam eder; hata yerel günlüğe yazılır ve kullanıcı günlük klasörünü/tanı özetini açabilir.
+- İlk açılışta son kontrolün üzerinden altı saat geçmişse sürüm denetimi yapılır; kontrol zamanı kullanıcı uygulama verisinde saklanır.
+- DUYRA açık kaldığında altı saatlik kontrol döngüsü sürer.
+- Zamanlamaya küçük gecikme eklenir; geçici hatalarda artan bekleme ve hız sınırı yanıtlarında sunucunun yeniden deneme bilgisi kullanılır.
+- Yeni sürüm bulunduğunda alt durum çubuğunda sürüm bilgisi ile "Şimdi güncelle" ve "Daha sonra" seçenekleri gösterilir.
+- "Şimdi güncelle" açık kullanıcı onayıdır. İndirme, SHA-256 bütünlük ve Ed25519 imza doğrulaması, kurulum ve yeniden başlatma bu onaydan sonra gerçekleşir.
+- "Daha sonra" kurulum yapmaz; yeni denetim zamanında yeniden bildirim verilebilir.
+- Kullanıcı onayı olmadan uygulama kendiliğinden kapanmaz, kurulum yapmaz veya yeniden başlatılmaz.
+- Hatalarda mevcut sürüm çalışmaya devam eder ve hata yerel günlüğe yazılır.
 
-**Bu sürümde bilinçli olarak yapılmayacaklar:**
+Bilinçli sınırlar:
 
-- İndirme kullanıcı onayından önce arka planda başlamaz; gereksiz indirme ve yarım kalan paket yönetimi eklenmez.
-- "İşimi bitirince otomatik kur" tercihi henüz uygulanmaz. İnceleme, kaydedilmemiş değişiklik ve çalışan görev durumları için güvenilir bir yaşam döngüsü modeli kurulmadan boşta kalma varsayımıyla uygulama yeniden başlatılmaz. Bu davranış, gerçek çalışma akışları eklendiğinde ayrı kabul testiyle ele alınır.
-- Ayarlar ekranına gereksiz tercih seçenekleri eklenmez; bu sürümde 6 saat varsayılan ve sabittir.
+- İndirme, kullanıcı onayından önce arka planda başlamaz.
+- "İşimi bitirince otomatik kur" henüz yoktur. İnceleme, kaydedilmemiş değişiklik ve çalışan görevleri izleyen gerçek bir yaşam döngüsü modeli kurulmadan otomatik boşta-kalma kurulumu yapılmaz.
+- Ayarlar ekranına bu aşamada ek tercih koyulmaz; kontrol aralığı altı saat olarak sabittir.
 
-Bu iş, v0.1.8 ana ekran doğrulamasından sonra başlatılmıştır. Uygulanıp CI ve gerçek kullanıcı testi tamamlanmadan sonraki hedefe geçilmez.
-
+**Bekleyen gerçek kullanıcı kabul testi:** v0.1.9'dan sonraki ilk doğal Release yayımlandığında, DUYRA açıkken altı saatlik kontrol veya sonraki açılışta yeni sürüm bildiriminin görünmesi; "Daha sonra"nın kurulum yapmaması; "Şimdi güncelle"nin imzalı paketi kurup uygulamayı yeniden başlatması doğrulanacaktır. Sırf bu testi oluşturmak için boş sürüm çıkarılmaz.
 
 ### 12.2. Ekran görüntüsüyle gerçek kullanıcı doğrulaması
 
@@ -188,7 +179,7 @@ Bu iş, v0.1.8 ana ekran doğrulamasından sonra başlatılmıştır. Uygulanıp
 
 ### 12.3. CI üzerinden otomatik ekran görüntüsü alma
 
-Tekrarlanan manuel ekran görüntüsü işini azaltmak için ileride CI sürecine görsel doğrulama adımı eklenmesi değerlendirilecektir.
+**Aktif teknik deneme:** `.github/workflows/gorsel-denetim.yml` ve `scripts/ci-ekran-goruntusu.ps1` eklendi. İlk gerçek çalışma Actions run 43987188203'tür; sonuç görülmeden ekran yakalama çalışıyor kabul edilmez.
 
 Hedeflenen yaklaşım:
 
