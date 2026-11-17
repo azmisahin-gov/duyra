@@ -186,6 +186,7 @@ Bilinçli sınırlar:
 **Teknik deneme tamamlandı ve doğrulandı.**
 
 - Workflow: `.github/workflows/gorsel-denetim.yml`
+- Tetiklenme: İlgili kaynak dosyalar değiştiğinde hem `main` dalına gönderimde hem de `main` hedefli PR'da çalışır. Böylece görsel ön kontrol birleştirmeden önce de yapılır.
 - Yakalama betiği: `scripts/ci-ekran-goruntusu.sh`
 - Çalışma ortamı: `ubuntu-latest`, Xvfb ve Mesa `llvmpipe` yazılım OpenGL çizicisi.
 - Derleme komutu, yalnızca Linux CI için `cargo build --release --features eframe/x11` şeklindedir. Üretim `Cargo.toml` ayarlarına veya Windows uygulama derlemesine dokunulmaz.
@@ -259,8 +260,8 @@ Linux için:
 
 ### 13.4. Sıralı geliştirme hedefleri
 
-1. **Mevcut hedef — v0.1.10:** Yeni İnceleme kaydı oluşturma, yerel kalıcı saklama, uygulama yeniden açıldığında listeleme ve kaydı tekrar açma. Bu aşamada delil aygıtına erişilmez.
-2. **Sonraki hedef:** Windows'ta yazma koruması için destek/edisyon/yetki ön kontrolü ve kullanıcıyı doğru koruma yöntemine yönlendirme. Uygulamanın sistem genelindeki koruma ilkesini habersiz değiştirmesi yoktur.
+1. **Tamamlandı — v0.1.10:** Yeni İnceleme kaydı oluşturma, yerel kalıcı saklama, uygulama yeniden açıldığında listeleme ve kaydı tekrar açma kodlandı; PR #1 ana dala birleştirildi ve Release yayımlandı. Bu aşamada delil aygıtına erişilmez. Gerçek Windows kullanıcı kabul testi henüz beklemededir.
+2. **Sıradaki hedef:** Windows'ta yazma koruması için destek/edisyon/yetki ön kontrolü ve kullanıcıyı doğru koruma yöntemine yönlendirme. Uygulamanın sistem genelindeki koruma ilkesini habersiz değiştirmesi yoktur.
 3. **Sonraki hedef:** Koruma doğrulandıktan sonra bağlı aygıtı güvenilir biçimde tanımlama ve salt okunur durumunu denetleme.
 4. **Sonraki hedef:** Kaynak dosya envanteri ve SHA-256 hash kaydı; kaynak ile çalışma çıktılarının ayrılması.
 5. **Sonraki hedef:** Ses dosyasını değiştirmeden dinleme ve zaman damgalı inceleme işaretleri.
@@ -268,3 +269,34 @@ Linux için:
 7. **Sonraki hedefler:** Deşifre, analiz ve bilirkişi raporu iş akışları.
 
 Her hedef ayrı kabul ölçütleriyle test edilir. Delil koruması doğrulanmadan gerçek delil medyası üzerinde okuma/inceleme özelliği açılmaz.
+
+
+## 14. İlk inceleme kaydı — v0.1.10
+
+**Kod hedefi tamamlandı ve Release yayımlandı; gerçek kullanıcı kabul testi bekliyor.**
+
+- PR #1: `İlk inceleme kaydını yerel olarak oluştur ve sakla`; squash merge commit: `43f541ddb308f192eb386493bc9271f9d5903b3e`.
+- Release: [v0.1.10](https://github.com/azmisahin-gov/duyra/releases/tag/v0.1.10). Windows ilk indirme `.exe`, imzalı otomatik güncelleme ZIP'i ve `SHA256SUMS.txt` yayımlandı.
+- Ana dal Windows CI run: `43994622910`. Kod biçimi, Clippy, testler, sürüm/anahtar kontrolü, Windows x64 derlemesi, dosya bilgileri, imzalı ZIP hazırlama ve Release yayımlama adımları başarılıdır.
+- Ana dal görsel CI run: `43994622845`; artifact `14287474999`. 1180×780 PNG indirildi ve açılarak incelendi. Ana ekranda inceleme sayacı ve **Yeni İnceleme Başlat** düğmesi yerleşimi uygundur.
+- Web sayfası dağıtımı: `43994622892`, başarılı.
+- Görsel CI artık PR'larda da çalışır. PR görsel run `43994337788`, artifact `14289665936`; PR Windows CI run `43994337587`, başarılıdır.
+
+### v0.1.10 kapsamı ve sınırı
+
+- Bilirkişi ana ekrandan **Yeni İnceleme Başlat** eylemiyle bir kayıt açabilir. DUYRA UUID tabanlı benzersiz uygulama içi İnceleme No üretir.
+- Bu numara resmî mahkeme, soruşturma, esas veya dosya numarası değildir. Resmî referans ileride ayrı ve isteğe bağlı alan olacaktır.
+- Kayıtlar Windows'ta `%LOCALAPPDATA%\\DUYRA\\incelemeler`, Linux'ta kullanıcı veri klasörü altında tutulur. Her inceleme ayrı JSON dosyasıdır; yeniden açılışta listelenir.
+- Bu aşamada kayıt yalnızca uygulama içi kimlik, numara, oluşturulma zamanı, şema sürümü ve başlangıç durumunu tutar. Delil dosyası, resmî dosya numarası veya hassas not saklanmaz.
+- JSON metadata dosyaları şifrelenmiş değildir. Hassas veri, dosya yolu veya dava bilgisi eklenmeden önce şifreleme, yedekleme ve kurtarma hedefi tamamlanmalıdır.
+- USB/delil aygıtı algılama, yazma koruması, kopyalama, hash alma, ses oynatma ve deşifre bu sürümde yoktur. Bu nedenle bu sürüm tek başına gerçek delil medyası incelemesine hazır kabul edilmez.
+
+### Kullanıcı kabul testi
+
+1. v0.1.9 kullanan Windows bilgisayarda v0.1.10 güncelleme bildiriminin, altı saatlik kontrol zamanlamasına uygun biçimde görünmesini doğrula.
+2. Kullanıcı onayıyla güncellemeyi kur ve sürüm bilgisinin v0.1.10 olduğunu doğrula.
+3. Gerçek dava/delil bilgisi girmeden iki deneme incelemesi oluştur; numaralarının farklı olduğunu gör.
+4. DUYRA'yı kapatıp yeniden aç; iki kaydın listede kaldığını ve açılabildiğini doğrula.
+5. Kayıt klasörü oluşturma/yazma hatasında uygulamanın sessizce başka konuma kaydetmediğini doğrula.
+
+Bu test tamamlanmadan ilk inceleme kaydı hedefi kullanıcı kabulü açısından kapatılmaz. Test için gerçek delil veya hassas dava verisi kullanılmaz.
