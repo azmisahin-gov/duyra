@@ -225,7 +225,6 @@ pub struct PolicyAuthorityCheck {
 }
 
 #[cfg(any(target_os = "windows", test))]
-#[cfg(any(target_os = "windows", test))]
 impl PolicyAuthorityCheck {
     pub fn unknown() -> Self {
         Self {
@@ -261,7 +260,6 @@ impl PolicyAuthorityCheck {
     }
 }
 
-#[cfg(any(target_os = "windows", test))]
 /// Politika değiştirme henüz sunulmadan önce gerekli güvenlik ön koşullarını sınıflandırır.
 /// Bu kontrol yalnızca değerlendirme yapar; kayıt defterine veya sistem politikasına yazmaz.
 #[cfg(any(target_os = "windows", test))]
