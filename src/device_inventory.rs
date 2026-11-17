@@ -81,10 +81,6 @@ impl DeviceInventory {
                     candidates,
                 }
             }
-            Err(EnumerationError::Unsupported) => Self {
-                state: InventoryState::Unsupported,
-                candidates: Vec::new(),
-            },
             Err(_) => Self {
                 state: InventoryState::Unknown,
                 candidates: Vec::new(),
@@ -106,7 +102,6 @@ impl DeviceInventory {
 #[cfg(any(target_os = "windows", test))]
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum EnumerationError {
-    Unsupported,
     Failed,
 }
 
@@ -431,21 +426,14 @@ mod tests {
     }
 
     #[test]
-    fn enumeration_errors_fail_closed_as_unknown_or_unsupported() {
+    fn enumeration_errors_fail_closed_as_unknown() {
         let failed = FakeProvider {
             result: Err(EnumerationError::Failed),
-        };
-        let unsupported = FakeProvider {
-            result: Err(EnumerationError::Unsupported),
         };
 
         assert_eq!(
             DeviceInventory::from_provider(&failed).state,
             InventoryState::Unknown
-        );
-        assert_eq!(
-            DeviceInventory::from_provider(&unsupported).state,
-            InventoryState::Unsupported
         );
     }
 
