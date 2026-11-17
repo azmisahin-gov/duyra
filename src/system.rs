@@ -165,7 +165,6 @@ pub fn video_adapters() -> Vec<String> {
     Vec::new()
 }
 
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WritePolicyStatus {
     Enabled,
