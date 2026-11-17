@@ -46,6 +46,10 @@ jobs:
       - name: Testleri çalıştır
         run: cargo test
 
+      - name: PR için Windows x64 derlemesini doğrula
+        if: github.event_name == 'pull_request'
+        run: cargo build --release
+
       - name: Sürümü ve imzalama anahtarını kontrol et
         id: version
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
