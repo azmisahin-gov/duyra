@@ -4,9 +4,12 @@ use eframe::egui::{self, Align, Color32, CornerRadius, Layout, RichText, Sense, 
 
 use crate::{
     examinations::ExaminationStore,
-    system::{WritePolicyStatus, WriteProtectionPreflight, WriteProtectionSupport},
+    system::WriteProtectionPreflight,
     updater::{self, SharedUpdateStatus, UpdateSnapshot},
 };
+
+#[cfg(target_os = "windows")]
+use crate::system::{WritePolicyStatus, WriteProtectionSupport};
 
 const BACKGROUND: Color32 = Color32::from_rgb(15, 23, 31);
 const SIDEBAR: Color32 = Color32::from_rgb(18, 30, 40);
@@ -693,6 +696,7 @@ fn draw_settings(ui: &mut egui::Ui, preflight: &WriteProtectionPreflight) {
             ui.add_space(16.0);
 
             match preflight {
+                #[cfg(target_os = "windows")]
                 WriteProtectionPreflight::Windows(status) => {
                     draw_preflight_row(
                         ui,
@@ -786,7 +790,7 @@ fn draw_settings(ui: &mut egui::Ui, preflight: &WriteProtectionPreflight) {
                             "İlgili HKLM Grup İlkesi değeri tanımlı değil.",
                             WARNING,
                         ),
-                        WritePolicyStatus::UnexpectedValue(value) => (
+                        WritePolicyStatus::UnexpectedValue(_value) => (
                             "İlgili HKLM Grup İlkesi değeri beklenmeyen bir sayı içeriyor.",
                             WARNING,
                         ),
@@ -817,6 +821,7 @@ fn draw_settings(ui: &mut egui::Ui, preflight: &WriteProtectionPreflight) {
                         }
                     }
                 }
+                #[cfg(not(target_os = "windows"))]
                 WriteProtectionPreflight::UnsupportedPlatform => {
                     ui.label(
                         RichText::new(
@@ -869,6 +874,7 @@ fn draw_settings(ui: &mut egui::Ui, preflight: &WriteProtectionPreflight) {
         });
 }
 
+#[cfg(target_os = "windows")]
 fn draw_preflight_row(ui: &mut egui::Ui, label: &str, value: &str) {
     ui.horizontal(|ui| {
         ui.set_min_width(ui.available_width());
