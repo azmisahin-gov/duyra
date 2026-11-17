@@ -94,6 +94,7 @@ const FOOTER_HEIGHT: f32 = 48.0;
 
 pub struct ExaminationUiState {
     examinations: ExaminationStore,
+    device_inventory: crate::device_inventory::DeviceInventory,
     selected_examination: Option<String>,
     examination_notice: Option<String>,
     #[cfg(target_os = "windows")]
@@ -118,6 +119,7 @@ impl ExaminationUiState {
 
         Self {
             examinations,
+            device_inventory: crate::device_inventory::DeviceInventory::not_scanned(),
             selected_examination: None,
             examination_notice,
             #[cfg(target_os = "windows")]
@@ -267,6 +269,9 @@ pub fn show(
                                                 selected_view,
                                                 examination_notice,
                                             ),
+                                            WorkspaceView::Evidence => {
+                                                draw_evidence(content, &mut examination_ui.device_inventory)
+                                            }
                                             WorkspaceView::Settings => {
                                                 #[cfg(target_os = "windows")]
                                                 {
@@ -1245,6 +1250,99 @@ fn draw_preflight_row(ui: &mut egui::Ui, label: &str, value: &str) {
             ui.label(RichText::new(value).size(11.0).strong().color(TEXT));
         });
     });
+}
+
+
+fn draw_evidence(ui: &mut egui::Ui, inventory: &mut crate::device_inventory::DeviceInventory) {
+    egui::Frame::new()
+        .fill(SURFACE)
+        .stroke(Stroke::new(1.0, BORDER))
+        .corner_radius(CornerRadius::same(14))
+        .inner_margin(egui::Margin::same(22))
+        .show(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.vertical(|ui| {
+                    ui.label(
+                        RichText::new("BAĞLI DİSK AYGITLARI")
+                            .size(10.0)
+                            .strong()
+                            .color(MUTED),
+                    );
+                    ui.label(
+                        RichText::new("Windows'un şu anda bağlı olarak bildirdiği disk aygıtları.")
+                            .size(12.0)
+                            .color(TEXT),
+                    );
+                });
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    if ui.button("Bağlı Aygıtları Tara").clicked() {
+                        *inventory = crate::device_inventory::DeviceInventory::discover_present_disks();
+                    }
+                });
+            });
+
+            ui.add_space(12.0);
+            ui.label(
+                RichText::new(inventory.state_label())
+                    .size(11.0)
+                    .strong()
+                    .color(match inventory.state {
+                        crate::device_inventory::InventoryState::CandidatesFound => SUCCESS,
+                        crate::device_inventory::InventoryState::Unknown => WARNING,
+                        crate::device_inventory::InventoryState::NotScanned
+                        | crate::device_inventory::InventoryState::Unsupported
+                        | crate::device_inventory::InventoryState::NoCandidates => MUTED,
+                    }),
+            );
+
+            if inventory.state == crate::device_inventory::InventoryState::CandidatesFound {
+                ui.add_space(8.0);
+                for candidate in &inventory.candidates {
+                    ui.horizontal(|ui| {
+                        ui.label(
+                            RichText::new(format!("{}.", candidate.row + 1))
+                                .size(11.0)
+                                .color(MUTED),
+                        );
+                        ui.label(
+                            RichText::new(&candidate.display_name)
+                                .size(12.0)
+                                .strong()
+                                .color(TEXT),
+                        );
+                        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                            let label = match candidate.removability {
+                                crate::device_inventory::PnpRemovability::ReportedRemovable => {
+                                    "PnP çıkarılabilir"
+                                }
+                                crate::device_inventory::PnpRemovability::NotConfirmed => {
+                                    "Sınıfı kesinleşmedi"
+                                }
+                            };
+                            ui.label(RichText::new(label).size(10.0).color(MUTED));
+                        });
+                    });
+                    ui.separator();
+                }
+            }
+
+            ui.add_space(10.0);
+            ui.label(
+                RichText::new(
+                    "Bu liste yalnızca Windows PnP aygıt özelliklerini okur. Disk veya bölüm açılmaz; sürücü harfi, aygıt yolu, seri numarası ya da benzersiz kimlik gösterilmez.",
+                )
+                .size(10.0)
+                .color(MUTED),
+            );
+            ui.add_space(6.0);
+            ui.label(
+                RichText::new(
+                    "PnP çıkarılabilirlik işareti, Removable Disks politikasının bu diske uygulandığını kanıtlamaz. Bu aşamada aygıtın yazılabilirliği sorgulanmaz; USB'ye dosya yazılmaz veya içerik okunmaz.",
+                )
+                .size(10.0)
+                .color(WARNING),
+            );
+        });
 }
 
 fn draw_placeholder(ui: &mut egui::Ui, view: WorkspaceView) {
