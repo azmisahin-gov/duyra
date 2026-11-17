@@ -935,6 +935,8 @@ fn draw_settings(
                     }
 
                     if checking {
+                        ui.ctx()
+                            .request_repaint_after(std::time::Duration::from_millis(100));
                         ui.label(
                             RichText::new("Windows ilke ve yönetim kayıtları salt okunur inceleniyor.")
                                 .size(10.0)
