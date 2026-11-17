@@ -105,7 +105,10 @@ wait_for_record_count() {
   local actual=0
 
   while (( SECONDS < deadline )); do
-    actual="$(find "$records_dir" -maxdepth 1 -type f -name '*.json' 2>/dev/null | wc -l | tr -d ' ')"
+    actual=0
+    if [[ -d "$records_dir" ]]; then
+      actual="$(find "$records_dir" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')"
+    fi
     if [[ "$actual" == "$expected" ]]; then
       return 0
     fi
@@ -175,8 +178,10 @@ validate_records
 
 # Her iki kaydı da Aç ile seç; Açık İnceleme alanı seçimle değişmelidir.
 click_at 1100 211
+xdotool mousemove --sync --window "$window_id" 800 680
 capture "inceleme-akisi-05-ilk-kayit-acik.png"
 click_at 1100 252
+xdotool mousemove --sync --window "$window_id" 800 680
 capture "inceleme-akisi-06-ikinci-kayit-acik.png"
 
 difference="$(compare -metric AE "$artifact_dir/inceleme-akisi-05-ilk-kayit-acik.png" "$artifact_dir/inceleme-akisi-06-ikinci-kayit-acik.png" null: 2>&1 || true)"
