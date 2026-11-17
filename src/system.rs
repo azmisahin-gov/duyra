@@ -385,7 +385,8 @@ fn assess_write_protection_support(
 #[cfg(target_os = "windows")]
 mod windows_write_protection {
     use super::{
-        WindowsWriteProtectionPreflight, WritePolicyStatus, assess_write_protection_support,
+        PolicyAuthorityCheck, WindowsWriteProtectionPreflight, WritePolicyStatus,
+        assess_write_protection_support,
     };
     use std::{
         ffi::c_void,
