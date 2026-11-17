@@ -98,6 +98,9 @@ Güncelleme paketlerini doğrulamak için kullanılan imzalama anahtarı, kullan
 - Kullanıcı isterse uygulama içinden günlük klasörünü açabilir veya kişisel klasör yolları ayıklanmış tanılama özetini kopyalayabilir.
 - Tam günlük dosyası paylaşılmadan önce kullanıcı tarafından incelenmelidir. Delil dosyaları, kayıt içerikleri ve hassas dosya yolları destek kaydına eklenmemelidir.
 
+- Windows yazma koruması ön kontrolü, bilgisayarın o andaki durumunu gösterir; sonuçlar varsayılan olarak inceleme kaydına veya uygulama günlüğüne yazılmaz. Bu bilgiler delil işlem geçmişi değildir ve gereksiz yere kalıcılaştırılmaz.
+- Ön kontrol sonucunu paylaşmak gerektiğinde kullanıcı açıkça isterse, yalnızca gerekli sistem durumu alanlarını içeren, kullanıcı adı/bilgisayar adı/özel dosya yolu içermeyen bir özet panoya kopyalanabilir. Kopyalama kullanıcının düğmeye basmasıyla gerçekleşir; otomatik gönderim veya otomatik günlük kaydı yapılmaz.
+- Güncelleme hataları için mevcut “Tanı özeti” işlevi ayrı bir akıştır. Bu işlev Windows yazma koruması ön kontrol sonucunun kopyalanabildiği anlamına gelmez.
 ## 9. Bitti sayma ve yayın ölçütü
 
 Bir iş ancak aşağıdakiler sağlandığında tamamdır:
@@ -366,3 +369,39 @@ Windows üzerinde yazılımsal delil yazma-koruma ön kontrolünü tasarlamak: d
 5. UI, “ilke kaydı” ile “aygıt salt okunur doğrulaması” arasındaki farkı açıkça anlatır.
 
 Bir sonraki ayrı hedef, kullanıcı onaylı ve etkisi açıklanmış bir Windows politika etkinleştirme yardımını değerlendirmek olabilir. Bu hedef tamamlanmadan politika değiştirme veya USB'ye erişim eklenmez.
+
+### Kullanıcı kabul testi — 17 Kasım 2026
+
+**v0.1.11 ön kontrol ekranı Windows üzerinde kullanıcı tarafından doğrulandı.**
+
+- Uygulama normal açıldığında yönetici yetkisi olmadığı doğru gösterildi.
+- Uygulama “Yönetici olarak çalıştır” ile açıldığında yükseltilmiş yetki doğru gösterildi.
+- Her iki açılışta Windows sürüm/edisyon/derleme bilgisi ve destek kapsamı gösterildi.
+- Her iki açılışta ilgili HKLM Deny_Write kaydı “tanımlı değil” olarak görüntülendi.
+- Kullanıcı ekran görüntülerini sağladı. Görüntüler özel bilgisayar ayrıntısı içerebildiğinden depoya veya Release'e eklenmedi.
+- Kabul sonucu: **başarılı**. Bu test, yönetici yetkisinin doğru tespit edildiğini doğrular; yazma korumasının etkin olduğunu veya USB'nin salt okunur olduğunu kanıtlamaz.
+- Ön kontrol bilgileri bu sürümde Ayarlar'a veya günlük dosyasına kaydedilmez. Ayarlar ekranında ön kontrol özetini kopyalama düğmesi de henüz yoktur. Kullanıcının metni seçerek kopyalayamaması bu sürümün mevcut sınırıdır; kabul edilen ön kontrol işlevini başarısız kılmaz.
+
+### Sıradaki küçük kullanılabilirlik hedefi
+
+Windows ön kontrol sonucuna **“Ön kontrol sonucunu kopyala”** eylemi eklemek. Bu eylem yalnızca kullanıcı tıkladığında, işletim sistemi/edisyon/derleme, yönetici yetkisi, destek kapsamı ve okunan HKLM ilke durumunu içeren kısa bir özeti panoya kopyalamalıdır. Kullanıcı adı, bilgisayar adı, özel dosya yolu veya USB içeriği özete girmemelidir. Sonuç otomatik kaydedilmemeli, günlük dosyasına yazılmamalı ve ağa gönderilmemelidir.
+
+Politika etkinleştirme tasarımı ve USB aygıtına erişim bu küçük hedefin kapsamına alınmaz; ayrı karar ve kabul ölçütü gerektirir.
+
+## 17. Depo, dal, PR ve commit yönetimi
+
+**Amaç:** Git geçmişini, CI sonuçlarını ve açık işleri okunabilir tutmak; kullanıcının neyin tamamlandığını tek bakışta anlayabilmesini sağlamak.
+
+1. Her yeni hedef doğrudan güncel main dalından başlatılır. Eski veya birleştirilmiş bir özellik dalından yeni iş türetilmez.
+2. Aynı anda tek ürün hedefi ve mümkün olduğunca tek aktif çalışma dalı/PR tutulur. Bağımsız işler paralel dallara bölünmez; sıraya alınır.
+3. Bir hedef için tek, kapsamı açık PR açılır. İlişkili kod, test ve zorunlu belge değişiklikleri aynı PR'da gruplanır. Aynı hedef için düzeltme PR'ı veya ikinci bir PR açılmaz.
+4. Commit, her küçük deneme veya CI hatası için değil, anlamlı ve gözden geçirilebilir bir değişiklik birimi oluştuğunda atılır. Biçim/Clippy/test hataları aynı çalışma dalında düzeltilir. Normal durumda bir hedefin PR'ı az sayıda, anlamlı commit içermelidir; commit sayısı kendi başına ilerleme ölçütü değildir.
+5. Commit ve PR başlıkları Türkçe, kısa ve yapılan gerçek değişikliği anlatır. PR açıklaması hedefi, kapsam dışı bırakılanları ve kabul ölçütlerini yazar.
+6. CI başarısızsa önce hangi adımın ve neden başarısız olduğu bulunur. Ürün hatası ile CI ortamı sorunu ayrıştırılır; düzeltme aynı PR'da yapılır ve son commit'in ilgili kontrolleri yeniden çalıştırılır. Başarısız bir koşu gizlenmez veya başarı gibi sunulmaz.
+7. PR yalnızca son değişiklikler incelendikten ve gerekli kontroller geçtikten sonra birleştirilir. Tercih edilen yöntem squash merge'dür; her hedef ana dala tek, anlaşılır birleştirme commit'i olarak girmelidir.
+8. Birleştirmeden sonra main başının beklenen commit olduğu, ana dal CI işlerinin başarılı olduğu, PR'ın kapandığı ve gereksiz dal kalmadığı doğrulanır. Birleştirilmiş çalışma dalı silinir. Depoda normal durumda yalnızca main ve o anda üzerinde çalışılan tek dal bulunur.
+9. Dal silme işlemi kullanılan GitHub bağlantısında desteklenmiyorsa bu durum hemen ve açıkça bildirilir. Silinmiş gibi rapor verilmez; kullanıcıdan GitHub arayüzünden silmesi istenir ve ardından doğrudan dal listesi yeniden kontrol edilir.
+10. Release yalnızca yayımlanabilir ürün çıktısı ve gerekli kontroller hazır olduğunda çıkarılır. Her commit veya dokümantasyon değişikliği yeni Release gerektirmez.
+11. İş kapanırken tek durum özeti verilir: hedef, PR/merge commit'i, son CI sonucu, varsa Release, kullanıcı kabul durumu, kalan açık işler ve dal temizliği. Tamamlanmamış iş tamamlandı diye sunulmaz.
+
+**Çalışma hatırlatıcısı:** Önce planla, kapsamı sabitle, tek yerde uygula, aynı PR içinde düzelt, son hâlini doğrula, birleştir, dalı temizle ve sonucu kaydet. Daha çok commit/PR üretmek değil, doğrulanmış ürünü sade bir geçmişle teslim etmek başarıdır.
