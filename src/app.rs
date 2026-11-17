@@ -1310,17 +1310,43 @@ fn draw_evidence(ui: &mut egui::Ui, inventory: &mut crate::device_inventory::Dev
                                 .strong()
                                 .color(TEXT),
                         );
-                        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                            let label = match candidate.removability {
-                                crate::device_inventory::PnpRemovability::ReportedRemovable => {
-                                    "PnP çıkarılabilir"
-                                }
-                                crate::device_inventory::PnpRemovability::NotConfirmed => {
-                                    "Sınıfı kesinleşmedi"
-                                }
-                            };
-                            ui.label(RichText::new(label).size(10.0).color(MUTED));
-                        });
+                    });
+                    let node_label = match candidate.node_removability {
+                        crate::device_inventory::PnpNodeRemovability::RemovableFromParent => {
+                            "Üst aygıttan ayrılabilir"
+                        }
+                        crate::device_inventory::PnpNodeRemovability::NotMarkedRemovableFromParent => {
+                            "Üst aygıttan ayrılabilir işareti yok"
+                        }
+                        crate::device_inventory::PnpNodeRemovability::Unknown => "Bilinmiyor",
+                    };
+                    let policy_label = match candidate.removal_policy {
+                        crate::device_inventory::DeviceRemovalPolicy::NoRemovalExpected => {
+                            "Çıkarma beklenmiyor"
+                        }
+                        crate::device_inventory::DeviceRemovalPolicy::OrderlyRemovalExpected => {
+                            "Düzenli çıkarma bekleniyor"
+                        }
+                        crate::device_inventory::DeviceRemovalPolicy::SurpriseRemovalExpected => {
+                            "Beklenmedik çıkarma kabul ediliyor"
+                        }
+                        crate::device_inventory::DeviceRemovalPolicy::Unknown => "Bilinmiyor",
+                    };
+                    ui.horizontal(|ui| {
+                        ui.add_space(24.0);
+                        ui.label(
+                            RichText::new(format!("PnP düğümü: {node_label}"))
+                                .size(10.0)
+                                .color(MUTED),
+                        );
+                    });
+                    ui.horizontal(|ui| {
+                        ui.add_space(24.0);
+                        ui.label(
+                            RichText::new(format!("Windows çıkarma politikası: {policy_label}"))
+                                .size(10.0)
+                                .color(MUTED),
+                        );
                     });
                     ui.separator();
                 }
@@ -1337,7 +1363,7 @@ fn draw_evidence(ui: &mut egui::Ui, inventory: &mut crate::device_inventory::Dev
             ui.add_space(6.0);
             ui.label(
                 RichText::new(
-                    "PnP çıkarılabilirlik işareti, Removable Disks politikasının bu diske uygulandığını kanıtlamaz. Bu aşamada aygıtın yazılabilirliği sorgulanmaz; USB'ye dosya yazılmaz veya içerik okunmaz.",
+                    "PnP düğümü işareti, depolama medyasının çıkarılabilir olduğunu göstermez. Windows çıkarma politikası USB türü için ayrı bir ipucudur; yazılabilirliği veya delil korumasını doğrulamaz. Aygıt içeriği okunmaz ve USB'ye yazılmaz.",
                 )
                 .size(10.0)
                 .color(WARNING),
