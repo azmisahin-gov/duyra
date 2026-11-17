@@ -95,7 +95,7 @@ const FOOTER_HEIGHT: f32 = 48.0;
 pub struct ExaminationUiState {
     examinations: ExaminationStore,
     device_inventory: crate::device_inventory::DeviceInventory,
-    /// Yalnızca mevcut tarama listesindeki geçici satır seçimi; diske kaydedilmez.
+    /// Etkin inceleme boyunca bellekte tutulan geçici satır seçimi; diske kaydedilmez.
     selected_device_row: Option<usize>,
     selected_examination: Option<String>,
     examination_notice: Option<String>,
@@ -198,6 +198,7 @@ pub fn show(
     let examinations = &mut examination_ui.examinations;
     let selected_examination = &mut examination_ui.selected_examination;
     let selected_device_row = &mut examination_ui.selected_device_row;
+    let previous_selected_examination = selected_examination.clone();
     let examination_notice = &mut examination_ui.examination_notice;
 
     #[cfg(target_os = "windows")]
@@ -304,6 +305,25 @@ pub fn show(
                 );
             });
         });
+
+    clear_device_selection_if_examination_changed(
+        previous_selected_examination.as_deref(),
+        selected_examination.as_deref(),
+        selected_device_row,
+    );
+}
+
+fn clear_device_selection_if_examination_changed(
+    previous_examination: Option<&str>,
+    current_examination: Option<&str>,
+    selected_device_row: &mut Option<usize>,
+) -> bool {
+    if previous_examination == current_examination {
+        return false;
+    }
+
+    *selected_device_row = None;
+    true
 }
 
 fn draw_sidebar(ui: &mut egui::Ui, selected_view: &mut WorkspaceView) {
@@ -1399,7 +1419,7 @@ fn draw_evidence(
                             );
                             ui.label(
                                 RichText::new(
-                                    "Seçim yalnızca bu DUYRA oturumunda tutulur; yeniden taramada sıfırlanır ve inceleme kaydına yazılmaz.",
+                                    "Seçim yalnızca bu DUYRA oturumunda tutulur; yeniden taramada veya etkin inceleme değiştiğinde sıfırlanır ve inceleme kaydına yazılmaz.",
                                 )
                                 .size(10.0)
                                 .color(MUTED),
@@ -1601,5 +1621,66 @@ fn draw_brand_mark(ui: &mut egui::Ui, size: f32) {
         painter.line_segment([top, bottom], Stroke::new(stroke_width, foreground));
         painter.circle_filled(top, dot_radius, foreground);
         painter.circle_filled(bottom, dot_radius, foreground);
+    }
+}
+
+#[cfg(test)]
+mod device_selection_tests {
+    use super::clear_device_selection_if_examination_changed;
+
+    #[test]
+    fn keeps_selection_while_the_same_examination_remains_active() {
+        let mut selected_row = Some(2);
+
+        let changed = clear_device_selection_if_examination_changed(
+            Some("case-a"),
+            Some("case-a"),
+            &mut selected_row,
+        );
+
+        assert!(!changed);
+        assert_eq!(selected_row, Some(2));
+    }
+
+    #[test]
+    fn clears_selection_when_switching_between_examinations() {
+        let mut selected_row = Some(2);
+
+        let changed = clear_device_selection_if_examination_changed(
+            Some("case-a"),
+            Some("case-b"),
+            &mut selected_row,
+        );
+
+        assert!(changed);
+        assert_eq!(selected_row, None);
+    }
+
+    #[test]
+    fn clears_selection_when_an_examination_is_opened() {
+        let mut selected_row = Some(1);
+
+        let changed = clear_device_selection_if_examination_changed(
+            None,
+            Some("case-a"),
+            &mut selected_row,
+        );
+
+        assert!(changed);
+        assert_eq!(selected_row, None);
+    }
+
+    #[test]
+    fn clears_selection_when_leaving_an_examination() {
+        let mut selected_row = Some(1);
+
+        let changed = clear_device_selection_if_examination_changed(
+            Some("case-a"),
+            None,
+            &mut selected_row,
+        );
+
+        assert!(changed);
+        assert_eq!(selected_row, None);
     }
 }
