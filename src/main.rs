@@ -12,7 +12,7 @@ fn main() -> eframe::Result {
     let update_status = updater::check_on_startup();
     let graphics_adapters = system::video_adapters();
 
-    let mut examination_ui = app::ExaminationUiState::new();
+    let mut examination_ui = app::ExaminationUiState::load();
 
     let native_options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
