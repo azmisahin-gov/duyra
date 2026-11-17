@@ -259,7 +259,7 @@ fn assess_write_protection_support(
 #[cfg(target_os = "windows")]
 mod windows_write_protection {
     use super::{
-        WritePolicyStatus, WriteProtectionSupport, WindowsWriteProtectionPreflight,
+        WindowsWriteProtectionPreflight, WritePolicyStatus, WriteProtectionSupport,
         assess_write_protection_support,
     };
     use std::{ffi::c_void, mem::size_of, ptr};
@@ -279,10 +279,8 @@ mod windows_write_protection {
     const TOKEN_ELEVATION_CLASS: u32 = 20;
     const MAX_REGISTRY_VALUE_BYTES: usize = 64 * 1024;
 
-    const CURRENT_VERSION_KEY: &str =
-        r"SOFTWARE\Microsoft\Windows NT\CurrentVersion";
-    const REMOVABLE_DISK_POLICY_KEY: &str =
-        r"SOFTWARE\Policies\Microsoft\Windows\RemovableStorageDevices\{53f5630d-b6bf-11d0-94f2-00a0c91efb8b}";
+    const CURRENT_VERSION_KEY: &str = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion";
+    const REMOVABLE_DISK_POLICY_KEY: &str = r"SOFTWARE\Policies\Microsoft\Windows\RemovableStorageDevices\{53f5630d-b6bf-11d0-94f2-00a0c91efb8b}";
 
     #[repr(C)]
     struct TokenElevation {
