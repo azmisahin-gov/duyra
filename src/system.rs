@@ -205,7 +205,7 @@ pub struct WindowsWriteProtectionPreflight {
     pub computer_policy: WritePolicyStatus,
     pub read_warnings: Vec<String>,
 }
- 
+
 #[cfg(any(target_os = "windows", test))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PolicyChangeAssessment {
@@ -393,8 +393,7 @@ mod windows_write_protection {
         mem::size_of,
         path::PathBuf,
         process::{Command, Stdio},
-        ptr,
-        thread,
+        ptr, thread,
         time::{Duration, Instant},
     };
 
@@ -685,8 +684,7 @@ mod windows_write_protection {
     }
 
     const MDM_ENROLLMENTS_KEY: &str = r"SOFTWARE\Microsoft\Enrollments";
-    const MDM_STORAGE_POLICY_KEY: &str =
-        r"SOFTWARE\Microsoft\PolicyManager\current\device\Storage";
+    const MDM_STORAGE_POLICY_KEY: &str = r"SOFTWARE\Microsoft\PolicyManager\current\device\Storage";
 
     fn registry_subkey_count(key_path: &str) -> Result<Option<u32>, String> {
         let Some(key) = open_registry_key(key_path)? else {
@@ -717,7 +715,10 @@ mod windows_write_protection {
         if result == ERROR_SUCCESS {
             Ok(Some(sub_key_count))
         } else {
-            Err(win32_error("Windows kayıt defteri alt anahtar sorgusu", result))
+            Err(win32_error(
+                "Windows kayıt defteri alt anahtar sorgusu",
+                result,
+            ))
         }
     }
 
@@ -782,7 +783,13 @@ try {
 "#;
 
         let mut child = Command::new(powershell)
-            .args(["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script])
+            .args([
+                "-NoLogo",
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                script,
+            ])
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
             .spawn()
@@ -838,7 +845,6 @@ try {
             current_policy_value_present,
         }
     }
-
 
     pub fn inspect() -> WindowsWriteProtectionPreflight {
         let mut read_warnings = Vec::new();
@@ -1037,10 +1043,19 @@ mod policy_authority_tests {
 
     #[test]
     fn rsop_marker_requires_a_successful_exact_response() {
-        assert_eq!(parse_rsop_policy_marker(true, "DUYRA_RSOP_APPLIED"), Some(true));
-        assert_eq!(parse_rsop_policy_marker(true, "DUYRA_RSOP_NONE"), Some(false));
+        assert_eq!(
+            parse_rsop_policy_marker(true, "DUYRA_RSOP_APPLIED"),
+            Some(true)
+        );
+        assert_eq!(
+            parse_rsop_policy_marker(true, "DUYRA_RSOP_NONE"),
+            Some(false)
+        );
         assert_eq!(parse_rsop_policy_marker(false, "DUYRA_RSOP_NONE"), None);
-        assert_eq!(parse_rsop_policy_marker(true, "DUYRA_RSOP_NONE extra"), None);
+        assert_eq!(
+            parse_rsop_policy_marker(true, "DUYRA_RSOP_NONE extra"),
+            None
+        );
         assert_eq!(parse_rsop_policy_marker(true, ""), None);
     }
 
@@ -1065,7 +1080,10 @@ mod policy_authority_tests {
 
     #[test]
     fn reviewable_result_requires_every_probe_to_confirm_no_management() {
-        assert_eq!(reviewable_check().assessment(), PolicyChangeAssessment::Reviewable);
+        assert_eq!(
+            reviewable_check().assessment(),
+            PolicyChangeAssessment::Reviewable
+        );
         assert_eq!(
             PolicyAuthorityCheck::unknown().assessment(),
             PolicyChangeAssessment::Unknown
