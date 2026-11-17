@@ -4,10 +4,7 @@ use eframe::egui::{self, Align, Color32, CornerRadius, Layout, RichText, Sense, 
 
 use crate::{
     examinations::ExaminationStore,
-    system::{
-        WindowsWriteProtectionPreflight, WritePolicyStatus, WriteProtectionPreflight,
-        WriteProtectionSupport,
-    },
+    system::{WritePolicyStatus, WriteProtectionPreflight, WriteProtectionSupport},
     updater::{self, SharedUpdateStatus, UpdateSnapshot},
 };
 
