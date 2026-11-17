@@ -350,6 +350,19 @@ mod tests {
     }
 
     #[test]
+    fn rollback_detects_a_race_between_read_and_conditional_remove() {
+        let mut store = FakeStore::new(None);
+        let receipt = apply_write_protection(&mut store).expect("install should succeed");
+        store.mutate_before_remove = Some(Some(0));
+
+        let result = rollback_write_protection(&mut store, receipt);
+
+        assert!(matches!(result, Err(RollbackError::Conflict { .. })));
+        assert_eq!(store.snapshot.value, Some(0));
+        assert_eq!(store.remove_calls, 1);
+    }
+
+    #[test]
     fn rollback_refuses_the_same_value_written_again_by_another_source() {
         let mut store = FakeStore::new(None);
         let receipt = apply_write_protection(&mut store).expect("install should succeed");
