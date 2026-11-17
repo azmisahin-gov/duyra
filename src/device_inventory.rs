@@ -7,6 +7,8 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InventoryState {
     NotScanned,
+    // Windows disk taraması desteklenir; bu durum yalnızca diğer platformlarda üretilir.
+    #[cfg_attr(target_os = "windows", allow(dead_code))]
     Unsupported,
     NoCandidates,
     CandidatesFound,
