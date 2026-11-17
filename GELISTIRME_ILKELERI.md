@@ -314,8 +314,9 @@ Kullanıcı, Windows üzerinde v0.1.9 → v0.1.10 otomatik güncellemesini ve a�
 
 - PR #2: **İnceleme oluşturma ve yeniden açma akışını CI'da otomatik doğrula**; squash merge commit: `89e45c9bc07d71b433af8b1e1188ab8b2920ad8b`.
 - Workflow: `.github/workflows/gorsel-denetim.yml`; test betiği: `scripts/ci-inceleme-akisi.sh`.
-- Windows PR CI run `43998902297` başarılı: biçim, Clippy, testler ve Windows x64 release derlemesi geçti.
-- Linux görsel/etkileşim CI run `43998902293` başarılı; artifact `14292020043` indirildi ve ekran görüntüleri açılarak incelendi.
+- Windows PR CI run `43998902297` ve ana dal push CI run `43999207706` başarılı: biçim, Clippy, testler geçti; PR'da Windows x64 release derlemesi de başarılıdır. Ana dalda sürüm zaten yayımlandığı için yeni derleme/yayın adımları atlandı.
+- Linux PR görsel/etkileşim CI run `43998902293`, artifact `14292020043`; ana dal push görsel/etkileşim CI run `43999207671` başarılıdır. PR artifact'ı indirildi ve ekran görüntüleri açılarak incelendi.
+- PR #1 ve #2 birleştirildi; açık PR kalmadı. Uzakta `feature/ilk-inceleme-kaydi` ve `test/ci-inceleme-akisi` dalları duruyor. Kullanılabilir GitHub bağlantısı bu oturumda dal silme işlemi sunmadığı için bu iki eski dal henüz temizlenemedi; yeni işler `main` üzerinden ayrı dallarda başlatılmalıdır.
 - Smoke test geçici `XDG_DATA_HOME` kullanır; kullanıcı bilgisayarını, gerçek delili veya mevcut kullanıcı kayıtlarını kullanmaz.
 - Test Genel Bakış'tan ilk kaydı oluşturur, DUYRA'yı kapatıp tekrar açar, kaydın geri geldiğini doğrular, ikinci kaydı oluşturur, JSON içeriklerinde iki farklı UUID/İnceleme No ve beklenen durumu kontrol eder.
 - Her iki **Aç** düğmesi tıklanır. Açık İnceleme alanındaki içerik için alınan iki PNG karşılaştırılır; son başarılı çalışmada farklılık `862` piksel olarak ölçüldü. Her adımın ekran görüntüsü, stdout/stderr, kayıt JSON'ları ve durum özeti 7 günlük CI artifact'ında saklanır.
