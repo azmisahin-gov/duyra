@@ -519,6 +519,18 @@ Kaynaklar (Microsoft Learn, 17 Kasım 2026 tarihinde incelendi):
 - Daha yüksek riskli testler (yönetici yükseltmesi, policy/registry yazma, sürücü/aygıt açma, yazma/geri alma) otomatik çalıştırılmaz; yalnızca izole VM, snapshot ve ayrılmış test aygıtıyla yürütülür.
 - Denetim tamamlandığında güncel rapor ve sınırlı olay geçmişi yerel tanılama klasörüne yazılır. Rapor aynı dosya üzerinde güncellenir; olay kaydı boyut sınırında döndürülür.
 
+### Yerel inceleme deposu başlangıç denetimi — 17 Kasım 2026
+
+Uygulama başlatılırken inceleme kayıt deposunun kullanılabilirliği sabit kodlu bir tanılama olayı olarak kaydedilir:
+
+- ok / examination_store_ready: Depo açıldı ve kayıt dosyaları okunabildi.
+- warning / examination_store_load_warnings: Depodaki bazı kayıtlar okunamadı. Sorunlu dosyalar silinmez veya değiştirilmez.
+- unknown / examination_store_unavailable: Depo klasörü oluşturulamadı, izinleri korunamadı veya depo açılamadı.
+
+Olay yalnızca local_storage, examination_store, durum ve sabit kod alanlarını içerir. Kayıt klasörü yolu, inceleme numarası/UUID'si, dosya adı, dosya içeriği veya işletim sistemi hata metni tanılama günlüğüne eklenmez. İnceleme kaydı deposu ile tanılama deposu ayrı kalır. Bu kontrol mevcut inceleme deposunu açma/okuma davranışının sonucunu raporlar; delil dosyalarını taramaz, açmaz veya değiştirmez.
+
+Kabul testleri; kullanılabilir boş depo, okunamayan fakat korunan kayıt dosyası ve kullanılamayan depo yolu senaryolarını kapsar.
+
 ### Gizlilik ve bütünlük
 
 - Tanılama API'si serbest metin değil, sabit bileşen/kontrol/durum kodları alır. Böylece kullanıcı adı, UPN, tenant/device GUID, domain adı, dosya yolu, seri numarası ve ham çıktıların yanlışlıkla kaydedilmesi önlenir.
@@ -530,6 +542,6 @@ Kaynaklar (Microsoft Learn, 17 Kasım 2026 tarihinde incelendi):
 ### Aşamalı kapsam
 
 1. **İlk adım:** Windows başlangıç ön kontrolü ve politika yönetim kaynağı bulgularını otomatik raporla.
-2. **Sonraki modüller:** Güncelleme doğrulaması, yerel veri deposu erişimi, uygulama bağımlılıkları, ses işleme motoru ve rapor oluşturma gibi modüller aynı sabit olay API'sine katılır.
+2. **Sonraki modüller:** Güncelleme doğrulaması, uygulama bağımlılıkları, ses işleme motoru ve rapor oluşturma gibi modüller aynı sabit olay API'sine katılır.
 3. **İleri aşama:** Kullanıcı onayıyla tanılama paketini inceleme ve seçmeli dışa aktarma; otomatik upload hiçbir zaman varsayılan olmaz.
 4. Her yeni denetim için risk sınıfı, saklanan alanlar, rapor şeması ve kabul testi belgelenmeden otomatik başlangıç kontrolüne eklenmez.
