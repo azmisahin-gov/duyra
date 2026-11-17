@@ -168,7 +168,9 @@ mod tests {
 
     #[test]
     fn empty_inventory_is_not_reported_as_unsupported() {
-        let provider = FakeProvider { result: Ok(Vec::new()) };
+        let provider = FakeProvider {
+            result: Ok(Vec::new()),
+        };
         let inventory = DeviceInventory::enumerate(&provider);
 
         assert_eq!(inventory.state, DiscoveryState::NoCandidates);
