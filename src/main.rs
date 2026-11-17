@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod app;
+mod diagnostics;
 mod examinations;
 mod icon;
 mod system;
@@ -12,8 +13,9 @@ fn main() -> eframe::Result {
     let update_status = updater::check_on_startup();
     let graphics_adapters = system::video_adapters();
     let write_protection = system::write_protection_preflight();
+    diagnostics::record_application_startup();
 
-    let mut examination_ui = app::ExaminationUiState::load();
+    let mut examination_ui = app::ExaminationUiState::load(&write_protection);
 
     let native_options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
