@@ -1055,7 +1055,7 @@ fn draw_settings(
             ui.add_space(6.0);
             ui.label(
                 RichText::new(
-                    "İlke kaydının etkin görünmesi, belirli bir USB aygıtının fiilen salt okunur olduğunu tek başına kanıtlamaz. MDM/Intune ilkeleri ve aygıtın gerçek salt okunur durumu bu aşamada denetlenmez.",
+                    "İlke kaydının etkin görünmesi, belirli bir USB aygıtının fiilen salt okunur olduğunu tek başına kanıtlamaz. MDM/Intune yönetim işaretleri için aşağıdaki kaynak denetimini çalıştırın; gerçek aygıt durumu ayrıca doğrulanmalıdır.",
                 )
                 .size(10.0)
                 .color(MUTED),
