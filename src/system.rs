@@ -225,39 +225,55 @@ pub struct PolicyAuthorityCheck {
 }
 
 #[cfg(any(target_os = "windows", test))]
-impl PolicyAuthorityCheck {
-    pub fn unknown() -> Self {
-        Self {
-            group_policy_applied: None,
-            mdm_enrollment_detected: None,
-            mdm_policy_present: None,
-            domain_joined: None,
-            current_policy_value_present: None,
+/// Politika değiştirme henüz sunulmadan önce gerekli güvenlik ön koşullarını sınıflandırır.
+/// Bu kontrol yalnızca değerlendirme yapar; kayıt defterine veya sistem politikasına yazmaz.
+#[cfg(any(target_os = "windows", test))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PolicyChangeReadiness {
+    UnsupportedWindows,
+    ManagedByOrganization,
+    SourceUnknown,
+    ExistingPolicyValue,
+    NotElevated,
+    PreconditionsMet,
+}
+
+#[cfg(any(target_os = "windows", test))]
+pub fn assess_policy_change_readiness(
+    status: &WindowsWriteProtectionPreflight,
+    authority: &PolicyAuthorityCheck,
+) -> PolicyChangeReadiness {
+    if !matches!(status.support, WriteProtectionSupport::Supported) {
+        return PolicyChangeReadiness::UnsupportedWindows;
+    }
+
+    match authority.assessment() {
+        PolicyChangeAssessment::Managed => {
+            return PolicyChangeReadiness::ManagedByOrganization;
+        }
+        PolicyChangeAssessment::Unknown => {
+            return PolicyChangeReadiness::SourceUnknown;
+        }
+        PolicyChangeAssessment::Reviewable => {}
+    }
+
+    match status.computer_policy {
+        WritePolicyStatus::NotConfigured => {}
+        WritePolicyStatus::Unknown(_) => {
+            return PolicyChangeReadiness::SourceUnknown;
+        }
+        WritePolicyStatus::Enabled
+        | WritePolicyStatus::Disabled
+        | WritePolicyStatus::UnexpectedValue(_) => {
+            return PolicyChangeReadiness::ExistingPolicyValue;
         }
     }
 
-    pub fn assessment(&self) -> PolicyChangeAssessment {
-        // An Enrollments registry key can remain after MDM unenrollment.
-        // Treat it as an ambiguous historical signal, not proof of active management.
-        // It still prevents a reviewable result below, so policy changes remain blocked.
-        if self.group_policy_applied == Some(true)
-            || self.mdm_policy_present == Some(true)
-            || self.domain_joined == Some(true)
-        {
-            return PolicyChangeAssessment::Managed;
-        }
-
-        if self.group_policy_applied == Some(false)
-            && self.mdm_enrollment_detected == Some(false)
-            && self.mdm_policy_present == Some(false)
-            && self.domain_joined == Some(false)
-            && self.current_policy_value_present == Some(false)
-        {
-            return PolicyChangeAssessment::Reviewable;
-        }
-
-        PolicyChangeAssessment::Unknown
+    if status.process_is_elevated != Some(true) {
+        return PolicyChangeReadiness::NotElevated;
     }
+
+    PolicyChangeReadiness::PreconditionsMet
 }
 
 #[cfg(any(target_os = "windows", test))]
