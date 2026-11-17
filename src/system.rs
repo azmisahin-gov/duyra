@@ -314,11 +314,7 @@ mod windows_write_protection {
         fn reg_close_key(key: HKey) -> i32;
 
         #[link_name = "OpenProcessToken"]
-        fn open_process_token(
-            process: Handle,
-            desired_access: u32,
-            token: *mut Handle,
-        ) -> i32;
+        fn open_process_token(process: Handle, desired_access: u32, token: *mut Handle) -> i32;
 
         #[link_name = "GetTokenInformation"]
         fn get_token_information(
@@ -355,15 +351,8 @@ mod windows_write_protection {
         let hkey_local_machine = (-2_147_483_646isize) as HKey;
         let mut key: HKey = ptr::null_mut();
 
-        let result = unsafe {
-            reg_open_key_ex_w(
-                hkey_local_machine,
-                path.as_ptr(),
-                0,
-                KEY_READ,
-                &mut key,
-            )
-        };
+        let result =
+            unsafe { reg_open_key_ex_w(hkey_local_machine, path.as_ptr(), 0, KEY_READ, &mut key) };
 
         match result {
             ERROR_SUCCESS => Ok(Some(key)),
