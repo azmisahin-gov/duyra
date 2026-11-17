@@ -184,8 +184,10 @@ click_at 1137 225
 xdotool mousemove --sync --window "$window_id" 800 680
 capture "inceleme-akisi-06-ikinci-kayit-acik.png"
 
-# Ayarlar sayfasını da aç; Linux CI üzerinde Windows'a özgü ön kontrol sınırı görünür olmalıdır.
-click_at 110 474
+# Ayarlar bağlantısının merkezine tıkla; sonra imleci boş alana taşı.
+# Linux CI'da Windows'a özgü ön kontrolün mevcut olmadığı açıklaması görünmelidir.
+click_at 110 436
+xdotool mousemove --sync --window "$window_id" 800 680
 capture "inceleme-akisi-07-yazma-koruma-on-kontrol.png"
 
 difference="$(compare -metric AE "$artifact_dir/inceleme-akisi-05-ilk-kayit-acik.png" "$artifact_dir/inceleme-akisi-06-ikinci-kayit-acik.png" null: 2>&1 || true)"
@@ -194,6 +196,12 @@ if [[ ! "$difference" =~ ^[0-9]+$ ]] || (( difference == 0 )); then
   fail "İki farklı kayıt seçildiğinde açık inceleme ekranı değişmedi."
 fi
 
+settings_difference="$(compare -metric AE "$artifact_dir/inceleme-akisi-06-ikinci-kayit-acik.png" "$artifact_dir/inceleme-akisi-07-yazma-koruma-on-kontrol.png" null: 2>&1 || true)"
+settings_difference="${settings_difference%% *}"
+if [[ ! "$settings_difference" =~ ^[0-9]+$ ]] || (( settings_difference < 10000 )); then
+  fail "Ayarlar tıklaması yeni bir sayfa açmadı veya görünüm beklenenden farklı."
+fi
+
 result="Başarılı"
-detail="İki farklı inceleme oluşturuldu; uygulama yeniden başlatıldı; kayıtlar geri yüklendi; iki kayıt da Aç eylemiyle seçildi. Görsel piksel farkı: $difference."
+detail="İki farklı inceleme oluşturuldu; uygulama yeniden başlatıldı; kayıtlar geri yüklendi; iki Aç seçimi doğrulandı; Ayarlar sayfasına geçiş de ekran farkıyla doğrulandı. Açık inceleme farkı: $difference piksel; Ayarlar geçiş farkı: $settings_difference piksel."
 echo "$detail"
