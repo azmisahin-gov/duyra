@@ -662,8 +662,8 @@ mod windows_preflight_tests {
         let second = write_protection_preflight();
 
         assert_eq!(first, second);
-        let super::WriteProtectionPreflight::Windows(status) = first else {
-            panic!("Windows derlemesinde Windows ön kontrolü döndürülmelidir.");
+        let status = match first {
+            super::WriteProtectionPreflight::Windows(status) => status,
         };
 
         assert!(
