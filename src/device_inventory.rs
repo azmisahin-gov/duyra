@@ -45,9 +45,7 @@ const CM_REMOVAL_POLICY_EXPECT_SURPRISE_REMOVAL: u32 = 3;
 #[cfg(any(target_os = "windows", test))]
 fn pnp_node_removability_from_capabilities(capabilities: Option<u32>) -> PnpNodeRemovability {
     match capabilities {
-        Some(flags) if flags & CM_DEVCAP_REMOVABLE != 0 => {
-            PnpNodeRemovability::RemovableFromParent
-        },
+        Some(flags) if flags & CM_DEVCAP_REMOVABLE != 0 => PnpNodeRemovability::RemovableFromParent,
         Some(_) => PnpNodeRemovability::NotMarkedRemovableFromParent,
         None => PnpNodeRemovability::Unknown,
     }
@@ -359,8 +357,7 @@ mod windows {
 
             let node_capabilities =
                 read_dword_property(device_info_set, &mut device_info_data, SPDRP_CAPABILITIES);
-            let node_removability =
-                pnp_node_removability_from_capabilities(node_capabilities);
+            let node_removability = pnp_node_removability_from_capabilities(node_capabilities);
 
             let removal_policy_value =
                 read_dword_property(device_info_set, &mut device_info_data, SPDRP_REMOVAL_POLICY);
@@ -562,6 +559,11 @@ mod tests {
         let inventory = DeviceInventory::discover_present_disks();
         assert_ne!(inventory.state, InventoryState::Unknown);
         assert_ne!(inventory.state, InventoryState::NotScanned);
-        assert!(inventory.candidates.iter().all(|candidate| candidate.row < 256));
+        assert!(
+            inventory
+                .candidates
+                .iter()
+                .all(|candidate| candidate.row < 256)
+        );
     }
 }
