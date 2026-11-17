@@ -21,6 +21,25 @@ const WARNING: Color32 = Color32::from_rgb(235, 166, 96);
 const SIDEBAR_WIDTH: f32 = 224.0;
 const FOOTER_HEIGHT: f32 = 48.0;
 
+pub struct ExaminationUiState {
+    examinations: ExaminationStore,
+    selected_examination: Option<String>,
+    examination_notice: Option<String>,
+}
+
+impl ExaminationUiState {
+    pub fn new() -> Self {
+        let examinations = ExaminationStore::open_default();
+        let examination_notice = examinations.notice();
+
+        Self {
+            examinations,
+            selected_examination: None,
+            examination_notice,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum WorkspaceView {
     #[default]
@@ -78,10 +97,12 @@ pub fn show(
     graphics_adapters: &[String],
     update_status: &SharedUpdateStatus,
     selected_view: &mut WorkspaceView,
-    examinations: &mut ExaminationStore,
-    selected_examination: &mut Option<String>,
-    examination_notice: &mut Option<String>,
+    examination_ui: &mut ExaminationUiState,
 ) {
+    let examinations = &mut examination_ui.examinations;
+    let selected_examination = &mut examination_ui.selected_examination;
+    let examination_notice = &mut examination_ui.examination_notice;
+
     root_ui.ctx().set_visuals(egui::Visuals::dark());
     root_ui.ctx().style_mut_of(egui::Theme::Dark, |style| {
         style.visuals.panel_fill = BACKGROUND;
