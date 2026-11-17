@@ -618,7 +618,6 @@ fn draw_workspaces(
                 );
             });
     }
-
 }
 
 fn draw_system_card(
