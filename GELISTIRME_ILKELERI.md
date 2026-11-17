@@ -208,3 +208,63 @@ Bu bir gözlem olarak kaydedilmiştir. Henüz kesin karar değildir. İleride k�
 
 Uygulama varsayılan olarak tam ekran başlatılmak zorunda değildir. Bu davranış değiştirilmeden önce ilk açılış ve sonraki açılış senaryoları ayrı kabul ölçütleriyle kararlaştırılmalıdır.
 
+
+
+## 13. İlk inceleme akışı ve delil koruması
+
+Bu bölüm, bilirkişinin ilk kez bir inceleme başlatmasından delil kaynağının okunmasına kadar izlenecek sırayı belirler. Amaç, ilk kullanılabilir işlevi geciktirmeden sunarken koruma doğrulanmadan delil üzerinde işlem yapılmasını önlemektir.
+
+### 13.1. Kararlaştırılan kullanıcı akışı
+
+1. Bilirkişi DUYRA'yı açar ve **Yeni İnceleme** kaydı oluşturur. Bu kayıt, delil aygıtı bağlanmadan önce oluşturulur.
+2. DUYRA kendi benzersiz **İnceleme No** değerini üretir. Bu numara DUYRA içindeki çalışma kaydını tanımlar; mahkeme, soruşturma, esas veya dosya numarası değildir.
+3. Resmî dosya/soruşturma/esas numarası, ileride ayrı ve isteğe bağlı bir alanda kullanıcının gireceği dış referanstır. DUYRA bu numarayı kendisi üretmez.
+4. Delil aygıtı bağlanmadan önce koruma hazırlığı yapılır. İşletim sistemi, sürüm, yetki ve koruma yöntemi kontrol edilir.
+5. Koruma yöntemi etkin ve doğrulanmış değilse DUYRA delil aygıtını bağlamaya veya içeriğini incelemeye hazır olduğunu iddia etmez.
+6. Koruma doğrulandıktan sonra bilirkişi aygıtı bağlar. DUYRA doğru aygıtı model/seri/kapasite gibi bilgilerle tanımlar ve bilirkişiye kaynağın doğru aygıt olduğunu onaylatır.
+7. Kaynak dosyalar listelenir ve hash değerleri alınır. Ses incelemesi, delil kaynağını değiştirmeyen açıkça tanımlanmış yöntemle başlar.
+8. Deşifre, not, işaret ve rapor gibi çalışma çıktıları kaynak delilden ayrı saklanır.
+
+### 13.2. İnceleme numarası ve kayıt
+
+- DUYRA'nın ürettiği numara yalnızca uygulama içi incelemeyi tanımlar; resmî dosya numarası yerine geçmez.
+- İlk kayıt aşamasında yalnızca UUID tabanlı benzersiz kimlik, görüntülenecek İnceleme No, oluşturulma zamanı, kayıt şeması sürümü ve basit durum saklanır.
+- İlk aşamada delil dosyası, dosya adı, dosya içeriği, mahkeme/soruşturma numarası veya kişisel bilgi kaydedilmez.
+- Windows kayıt alanı: `%LOCALAPPDATA%\\DUYRA\\incelemeler`.
+- Linux kayıt alanı: `$XDG_DATA_HOME/duyra/incelemeler`; değişken yoksa `~/.local/share/duyra/incelemeler`.
+- Kayıtlar sürümlenmiş ayrı JSON dosyaları olarak tutulur. Her kayıt ayrı dosyada olduğundan bir kaydın bozulması diğer kayıt dosyalarının üzerine yazılmasına yol açmamalıdır.
+- Bu ilk aşamadaki metadata dosyaları şifrelenmiş değildir. Bu nedenle hassas dosya referansı, kimlik bilgisi veya delil içeriği saklanmaz. Şifreleme ve yedekleme politikası, hassas kullanıcı verisi kaydedilmeden önce ayrı hedef olarak tasarlanacaktır.
+- Kayıt klasörü oluşturulamıyor veya yazılamıyorsa hata kullanıcıya gösterilir; geçici klasöre ya da uygulama dizinine sessizce kayıt yapılmaz.
+- Uygulama kapatılıp açıldığında mevcut kayıtlar tekrar listelenebilmelidir.
+
+### 13.3. Delil aygıtı yazma koruması
+
+**Temel tercih donanımsal yazma engelleyicidir.** Yazılımsal koruma, donanımsal engelleyicinin eşdeğeri veya delilin değiştirilemeyeceğine dair tek başına garanti olarak sunulmaz.
+
+Windows için araştırılan yazılımsal seçenek:
+
+- Microsoft'un **Removable Disks: Deny write access** bilgisayar ilkesi, Windows 10 sürüm 1809 ve sonrası için Pro, Enterprise, Education ve IoT Enterprise sürümlerinde belgelenmiştir.
+- Bu ilke çıkarılabilir disk sınıfına yazmayı engeller ve bilgisayar genelinde etki gösterir; yalnızca DUYRA'nın seçtiği tek USB belleğe uygulanmış gibi sunulamaz.
+- Belgelenen destek listesinde Windows Home yer almaz. Home sürümünde aynı koruma garantisi verilmeyecektir.
+- Uygulama bu ilkeyi kullanıcıdan habersiz değiştirmemelidir. İleride etkinleştirme yardımı sunulursa yönetici yetkisi, mevcut ilke, kapsam, diğer çıkarılabilir diskleri etkilemesi ve eski ayarı geri yükleme yöntemi açıkça gösterilmelidir.
+- Koruma durumu, uygulamanın yalnızca kendi ayarına bakılarak değil, işletim sisteminin ve ilgili aygıtın doğrulanabilen durumu üzerinden değerlendirilmelidir.
+
+Linux için:
+
+- `blockdev --setro` aygıt algılandıktan sonra blok aygıtı salt okunur işaretleyebilir; zaten yazılabilir bağlı bir dosya sistemi bu komutla geriye dönük olarak güvenli hâle gelmez.
+- Bu nedenle Linux'ta aygıt eklenmeden önce uygulanacak ve otomatik bağlama yarışını önleyecek koruma mekanizması ayrıca tasarlanıp gerçek Linux sisteminde test edilmelidir.
+- Linux CI derlemesi ve ekran görüntüsü, Linux delil korumasının veya üretim desteğinin kanıtı değildir.
+
+**Koruma doğrulama kuralı:** Koruma yöntemi, işletim sistemi desteği ve aygıtın salt okunur durumu kanıtlanamıyorsa DUYRA durumu “Koruma doğrulandı” yapmaz ve delil okuma aşamasına geçmez. Testler önce gerçek dava delili olmayan, ayrılmış deneme USB aygıtıyla yapılır.
+
+### 13.4. Sıralı geliştirme hedefleri
+
+1. **Mevcut hedef — v0.1.10:** Yeni İnceleme kaydı oluşturma, yerel kalıcı saklama, uygulama yeniden açıldığında listeleme ve kaydı tekrar açma. Bu aşamada delil aygıtına erişilmez.
+2. **Sonraki hedef:** Windows'ta yazma koruması için destek/edisyon/yetki ön kontrolü ve kullanıcıyı doğru koruma yöntemine yönlendirme. Uygulamanın sistem genelindeki koruma ilkesini habersiz değiştirmesi yoktur.
+3. **Sonraki hedef:** Koruma doğrulandıktan sonra bağlı aygıtı güvenilir biçimde tanımlama ve salt okunur durumunu denetleme.
+4. **Sonraki hedef:** Kaynak dosya envanteri ve SHA-256 hash kaydı; kaynak ile çalışma çıktılarının ayrılması.
+5. **Sonraki hedef:** Ses dosyasını değiştirmeden dinleme ve zaman damgalı inceleme işaretleri.
+6. **Sonraki hedef:** Hassas not, düzeltme ve rapor taslakları için şifreleme, yedekleme ve kurtarma politikasını belirleyip uygulama.
+7. **Sonraki hedefler:** Deşifre, analiz ve bilirkişi raporu iş akışları.
+
+Her hedef ayrı kabul ölçütleriyle test edilir. Delil koruması doğrulanmadan gerçek delil medyası üzerinde okuma/inceleme özelliği açılmaz.

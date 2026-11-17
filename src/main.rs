@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod app;
+mod examinations;
 mod icon;
 mod system;
 mod updater;
@@ -10,6 +11,8 @@ use eframe::glow::HasContext;
 fn main() -> eframe::Result {
     let update_status = updater::check_on_startup();
     let graphics_adapters = system::video_adapters();
+
+    let mut examination_ui = app::ExaminationUiState::load();
 
     let native_options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
@@ -49,6 +52,7 @@ fn main() -> eframe::Result {
             &graphics_adapters,
             &update_status,
             &mut selected_view,
+            &mut examination_ui,
         );
     })
 }

@@ -11,6 +11,16 @@ on:
       - "build.rs"
       - "scripts/ci-ekran-goruntusu.sh"
       - ".github/workflows/gorsel-denetim.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "assets/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "build.rs"
+      - "scripts/ci-ekran-goruntusu.sh"
+      - ".github/workflows/gorsel-denetim.yml"
   workflow_dispatch:
 
 permissions:

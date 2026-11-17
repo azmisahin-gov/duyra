@@ -2,7 +2,10 @@ use std::time::Duration;
 
 use eframe::egui::{self, Align, Color32, CornerRadius, Layout, RichText, Sense, Stroke, Vec2};
 
-use crate::updater::{self, SharedUpdateStatus, UpdateSnapshot};
+use crate::{
+    examinations::ExaminationStore,
+    updater::{self, SharedUpdateStatus, UpdateSnapshot},
+};
 
 const BACKGROUND: Color32 = Color32::from_rgb(15, 23, 31);
 const SIDEBAR: Color32 = Color32::from_rgb(18, 30, 40);
@@ -17,6 +20,25 @@ const WARNING: Color32 = Color32::from_rgb(235, 166, 96);
 
 const SIDEBAR_WIDTH: f32 = 224.0;
 const FOOTER_HEIGHT: f32 = 48.0;
+
+pub struct ExaminationUiState {
+    examinations: ExaminationStore,
+    selected_examination: Option<String>,
+    examination_notice: Option<String>,
+}
+
+impl ExaminationUiState {
+    pub fn load() -> Self {
+        let examinations = ExaminationStore::open_default();
+        let examination_notice = examinations.notice();
+
+        Self {
+            examinations,
+            selected_examination: None,
+            examination_notice,
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum WorkspaceView {
@@ -75,7 +97,12 @@ pub fn show(
     graphics_adapters: &[String],
     update_status: &SharedUpdateStatus,
     selected_view: &mut WorkspaceView,
+    examination_ui: &mut ExaminationUiState,
 ) {
+    let examinations = &mut examination_ui.examinations;
+    let selected_examination = &mut examination_ui.selected_examination;
+    let examination_notice = &mut examination_ui.examination_notice;
+
     root_ui.ctx().set_visuals(egui::Visuals::dark());
     root_ui.ctx().style_mut_of(egui::Theme::Dark, |style| {
         style.visuals.panel_fill = BACKGROUND;
@@ -127,6 +154,17 @@ pub fn show(
                                                 content,
                                                 graphics_info,
                                                 graphics_adapters,
+                                                examinations,
+                                                selected_examination,
+                                                selected_view,
+                                                examination_notice,
+                                            ),
+                                            WorkspaceView::Workspaces => draw_workspaces(
+                                                content,
+                                                examinations,
+                                                selected_examination,
+                                                selected_view,
+                                                examination_notice,
                                             ),
                                             view => draw_placeholder(content, *view),
                                         }
@@ -265,6 +303,10 @@ fn draw_overview(
     ui: &mut egui::Ui,
     graphics_info: Option<&(String, String)>,
     graphics_adapters: &[String],
+    examinations: &mut ExaminationStore,
+    selected_examination: &mut Option<String>,
+    selected_view: &mut WorkspaceView,
+    examination_notice: &mut Option<String>,
 ) {
     ui.add_space(2.0);
     egui::Frame::new()
@@ -293,7 +335,7 @@ fn draw_overview(
                     );
                     ui.add_space(9.0);
                     ui.label(
-                        RichText::new("İLK İNCELEME AKIŞI HAZIRLANIYOR")
+                        RichText::new("YENİ İNCELEME KAYDI OLUŞTURULABİLİR")
                             .size(9.0)
                             .strong()
                             .color(ACCENT),
@@ -311,26 +353,43 @@ fn draw_overview(
     );
     ui.add_space(8.0);
     ui.columns(3, |columns| {
-        draw_summary_card(&mut columns[0], "İncelemeler", "Henüz çalışma yok");
-        draw_summary_card(&mut columns[1], "Delil dosyaları", "Henüz dosya yok");
-        draw_summary_card(&mut columns[2], "Raporlar", "Henüz rapor yok");
+        draw_summary_card(
+            &mut columns[0],
+            "İncelemeler",
+            &examinations.records().len().to_string(),
+            "Yerel kayıt",
+        );
+        draw_summary_card(&mut columns[1], "Delil dosyaları", "—", "Henüz dosya yok");
+        draw_summary_card(&mut columns[2], "Raporlar", "—", "Henüz rapor yok");
     });
 
     ui.add_space(16.0);
     let width = ui.available_width();
     if width >= 860.0 {
         ui.columns(2, |columns| {
-            draw_recent_work_card(&mut columns[0]);
+            draw_recent_work_card(
+                &mut columns[0],
+                examinations,
+                selected_examination,
+                selected_view,
+                examination_notice,
+            );
             draw_system_card(&mut columns[1], graphics_info, graphics_adapters);
         });
     } else {
-        draw_recent_work_card(ui);
+        draw_recent_work_card(
+            ui,
+            examinations,
+            selected_examination,
+            selected_view,
+            examination_notice,
+        );
         ui.add_space(12.0);
         draw_system_card(ui, graphics_info, graphics_adapters);
     }
 }
 
-fn draw_summary_card(ui: &mut egui::Ui, title: &str, description: &str) {
+fn draw_summary_card(ui: &mut egui::Ui, title: &str, value: &str, description: &str) {
     egui::Frame::new()
         .fill(SURFACE)
         .stroke(Stroke::new(1.0, BORDER))
@@ -339,12 +398,18 @@ fn draw_summary_card(ui: &mut egui::Ui, title: &str, description: &str) {
         .show(ui, |ui| {
             ui.label(RichText::new(title).size(12.0).strong().color(TEXT));
             ui.add_space(8.0);
-            ui.label(RichText::new("—").size(24.0).strong().color(TEXT));
+            ui.label(RichText::new(value).size(24.0).strong().color(TEXT));
             ui.label(RichText::new(description).size(10.0).color(MUTED));
         });
 }
 
-fn draw_recent_work_card(ui: &mut egui::Ui) {
+fn draw_recent_work_card(
+    ui: &mut egui::Ui,
+    examinations: &mut ExaminationStore,
+    selected_examination: &mut Option<String>,
+    selected_view: &mut WorkspaceView,
+    examination_notice: &mut Option<String>,
+) {
     egui::Frame::new()
         .fill(SURFACE)
         .stroke(Stroke::new(1.0, BORDER))
@@ -352,30 +417,207 @@ fn draw_recent_work_card(ui: &mut egui::Ui) {
         .inner_margin(egui::Margin::same(18))
         .show(ui, |ui| {
             ui.label(
-                RichText::new("SON ÇALIŞMALAR")
+                RichText::new("SON İNCELEMELER")
                     .size(10.0)
                     .strong()
                     .color(MUTED),
             );
             ui.add_space(14.0);
+
+            if examinations.records().is_empty() {
+                ui.label(
+                    RichText::new("Henüz bir inceleme başlatılmadı")
+                        .size(13.0)
+                        .strong()
+                        .color(TEXT),
+                );
+                ui.label(
+                    RichText::new("İlk inceleme kaydınızı oluşturarak başlayın.")
+                        .size(10.0)
+                        .color(MUTED),
+                );
+            } else {
+                for record in examinations.records().iter().take(3) {
+                    ui.horizontal(|ui| {
+                        ui.label(RichText::new(&record.number).strong().color(TEXT));
+                        ui.label(RichText::new(&record.status).size(10.0).color(MUTED));
+                        if ui.small_button("Aç").clicked() {
+                            *selected_examination = Some(record.id.clone());
+                            *selected_view = WorkspaceView::Workspaces;
+                        }
+                    });
+                }
+            }
+
+            ui.add_space(10.0);
+            if ui.button("Yeni İnceleme Başlat").clicked() {
+                create_new_examination(
+                    examinations,
+                    selected_examination,
+                    selected_view,
+                    examination_notice,
+                );
+            }
+
+            if let Some(notice) = examination_notice.as_ref() {
+                ui.add_space(8.0);
+                ui.label(RichText::new(notice).size(10.0).color(WARNING));
+            }
+        });
+}
+
+fn create_new_examination(
+    examinations: &mut ExaminationStore,
+    selected_examination: &mut Option<String>,
+    selected_view: &mut WorkspaceView,
+    examination_notice: &mut Option<String>,
+) {
+    match examinations.create_record() {
+        Ok(record) => {
+            *selected_examination = Some(record.id.clone());
+            *selected_view = WorkspaceView::Workspaces;
+            *examination_notice = Some(format!(
+                "{} numaralı inceleme kaydı bu bilgisayara kaydedildi.",
+                record.number
+            ));
+        }
+        Err(error) => {
+            *examination_notice = Some(format!("İnceleme kaydı oluşturulamadı: {error}"));
+        }
+    }
+}
+
+fn draw_workspaces(
+    ui: &mut egui::Ui,
+    examinations: &mut ExaminationStore,
+    selected_examination: &mut Option<String>,
+    selected_view: &mut WorkspaceView,
+    examination_notice: &mut Option<String>,
+) {
+    egui::Frame::new()
+        .fill(SURFACE)
+        .stroke(Stroke::new(1.0, BORDER))
+        .corner_radius(CornerRadius::same(14))
+        .inner_margin(egui::Margin::same(22))
+        .show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
                     ui.label(
-                        RichText::new("Henüz bir inceleme başlatılmadı")
-                            .size(13.0)
+                        RichText::new("İNCELEME KAYITLARI")
+                            .size(10.0)
                             .strong()
-                            .color(TEXT),
+                            .color(MUTED),
                     );
                     ui.label(
-                        RichText::new(
-                            "İnceleme oluşturma ve kayıt akışı sonraki geliştirme hedefidir.",
-                        )
-                        .size(10.0)
-                        .color(MUTED),
+                        RichText::new("İncelemeleriniz bu bilgisayarda saklanır.")
+                            .size(12.0)
+                            .color(TEXT),
                     );
                 });
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    if ui.button("Yeni İnceleme").clicked() {
+                        create_new_examination(
+                            examinations,
+                            selected_examination,
+                            selected_view,
+                            examination_notice,
+                        );
+                    }
+                });
             });
+
+            ui.add_space(14.0);
+
+            if examinations.storage_error().is_some() {
+                ui.label(
+                    RichText::new("Yerel kayıt alanı kullanılamıyor. Kayıt oluşturma devre dışı.")
+                        .size(11.0)
+                        .color(WARNING),
+                );
+            }
+
+            if examinations.records().is_empty() {
+                ui.label(
+                    RichText::new("Henüz kayıtlı inceleme yok.")
+                        .size(13.0)
+                        .strong()
+                        .color(TEXT),
+                );
+                ui.label(
+                    RichText::new("Yeni İnceleme düğmesiyle yerel bir inceleme kaydı oluşturun.")
+                        .size(10.0)
+                        .color(MUTED),
+                );
+            } else {
+                for record in examinations.records() {
+                    ui.horizontal(|ui| {
+                        ui.vertical(|ui| {
+                            ui.label(
+                                RichText::new(&record.number)
+                                    .size(12.0)
+                                    .strong()
+                                    .color(TEXT),
+                            );
+                            ui.label(
+                                RichText::new(format!("Durum: {}", record.status))
+                                    .size(10.0)
+                                    .color(MUTED),
+                            );
+                        });
+                        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                            if ui.small_button("Aç").clicked() {
+                                *selected_examination = Some(record.id.clone());
+                            }
+                        });
+                    });
+                    ui.separator();
+                }
+            }
+
+            if let Some(notice) = examination_notice.as_ref() {
+                ui.add_space(8.0);
+                ui.label(RichText::new(notice).size(10.0).color(WARNING));
+            }
         });
+
+    if let Some(id) = selected_examination.as_deref()
+        && let Some(record) = examinations.find(id)
+    {
+        ui.add_space(14.0);
+        egui::Frame::new()
+            .fill(SURFACE_RAISED)
+            .stroke(Stroke::new(1.0, BORDER))
+            .corner_radius(CornerRadius::same(12))
+            .inner_margin(egui::Margin::same(18))
+            .show(ui, |ui| {
+                ui.label(
+                    RichText::new("AÇIK İNCELEME")
+                        .size(10.0)
+                        .strong()
+                        .color(ACCENT),
+                );
+                ui.add_space(8.0);
+                ui.label(
+                    RichText::new(&record.number)
+                        .size(18.0)
+                        .strong()
+                        .color(TEXT),
+                );
+                ui.label(
+                    RichText::new(format!("Durum: {}", record.status))
+                        .size(11.0)
+                        .color(MUTED),
+                );
+                ui.add_space(8.0);
+                ui.label(
+                    RichText::new(
+                        "Bu ilk aşamada yalnızca inceleme numarası ve oluşturulma bilgisi saklanır. Delil aygıtı bağlantısı henüz etkin değildir.",
+                    )
+                    .size(10.0)
+                    .color(MUTED),
+                );
+            });
+    }
 }
 
 fn draw_system_card(
