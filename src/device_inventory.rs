@@ -190,7 +190,8 @@ mod tests {
         let inventory = DeviceInventory::enumerate(&provider);
 
         assert_eq!(inventory.state, DiscoveryState::CandidatesFound);
-        assert_eq!(inventory.candidates.len(), 2);
+        assert_eq!(inventory.candidates.len(), 3);
+        assert_eq!(inventory.candidates[0].display_name, "USB bellek");
         assert_eq!(inventory.candidates[0].row, 0);
         assert_eq!(inventory.candidates[1].row, 1);
         assert_eq!(inventory.candidates[0].class, DeviceClass::Removable);
