@@ -1,0 +1,49 @@
+name: DUYRA Görsel CI Denemesi
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "assets/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "build.rs"
+      - "scripts/ci-ekran-goruntusu.ps1"
+      - ".github/workflows/gorsel-denetim.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows uygulama ekran görüntüsü
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Depoyu indir
+        uses: actions/checkout@v4
+
+      - name: Rust araçlarını kur
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust bağımlılık önbelleğini yükle
+        uses: Swatinem/rust-cache@v2
+
+      - name: Windows uygulamasını derle
+        run: cargo build --release
+
+      - name: DUYRA penceresini aç ve ekran görüntüsünü al
+        shell: pwsh
+        run: ./scripts/ci-ekran-goruntusu.ps1
+
+      - name: Görsel deneme çıktısını sakla
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: duyra-gorsel-denetim-${{ github.sha }}
+          path: artifacts/gorsel-denetim/
+          if-no-files-found: error
+          retention-days: 7
