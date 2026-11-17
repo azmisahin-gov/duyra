@@ -21,6 +21,7 @@ on:
       - "Cargo.lock"
       - "build.rs"
       - "scripts/ci-ekran-goruntusu.sh"
+      - "scripts/ci-inceleme-akisi.sh"
       - ".github/workflows/gorsel-denetim.yml"
   workflow_dispatch:
 
