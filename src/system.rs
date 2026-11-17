@@ -368,7 +368,10 @@ mod windows_write_protection {
         match result {
             ERROR_SUCCESS => Ok(Some(key)),
             ERROR_FILE_NOT_FOUND | ERROR_PATH_NOT_FOUND => Ok(None),
-            error => Err(win32_error("Windows kayıt defteri anahtarı okunması", error)),
+            error => Err(win32_error(
+                "Windows kayıt defteri anahtarı okunması",
+                error,
+            )),
         }
     }
 
@@ -442,10 +445,7 @@ mod windows_write_protection {
         result
     }
 
-    fn read_registry_string(
-        key_path: &str,
-        value_name: &str,
-    ) -> Result<Option<String>, String> {
+    fn read_registry_string(key_path: &str, value_name: &str) -> Result<Option<String>, String> {
         let Some((value_type, data)) = read_registry_value(key_path, value_name)? else {
             return Ok(None);
         };
@@ -473,10 +473,7 @@ mod windows_write_protection {
         Ok((!value.is_empty()).then_some(value))
     }
 
-    fn read_registry_dword(
-        key_path: &str,
-        value_name: &str,
-    ) -> Result<Option<u32>, String> {
+    fn read_registry_dword(key_path: &str, value_name: &str) -> Result<Option<u32>, String> {
         let Some((value_type, data)) = read_registry_value(key_path, value_name)? else {
             return Ok(None);
         };
