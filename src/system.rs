@@ -367,6 +367,8 @@ pub fn windows_write_protection_summary(status: &WindowsWriteProtectionPreflight
             "\n",
             "Not: Bu sonuç yalnızca bilgisayar düzeyindeki HKLM ilke kaydını gösterir.\n",
             "Politika etkin görünse bile USB/SSD/microSD aygıtında yazmanın engellendiğini kanıtlamaz.\n",
+            "İlke yalnızca Windows'un ilgili çıkarılabilir disk sınıfına yöneliktir; sabit disk olarak sınıflandırılan USB-SSD, ağ paylaşımı, host klasör eşlemesi ve sanal disk kapsamı ayrıca değerlendirilir.\n",
+            "DUYRA politika açma/kapatma, Registry yazımı veya geri alma yapmaz.\n",
             "Bu ön kontrol sistem ayarlarını değiştirmez ve USB aygıtını açmaz."
         ),
         status.product_name.as_deref().unwrap_or("Okunamadı"),
