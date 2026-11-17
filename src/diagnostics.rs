@@ -125,8 +125,7 @@ fn append_event_at(
         status,
         code,
     };
-    let serialized =
-        serde_json::to_vec(&event).map_err(|_| "Tanılama kaydı serileştirilemedi.")?;
+    let serialized = serde_json::to_vec(&event).map_err(|_| "Tanılama kaydı serileştirilemedi.")?;
 
     let mut file = OpenOptions::new()
         .create(true)
@@ -161,7 +160,13 @@ pub fn record_event(
     let Ok(directory) = prepare_directory() else {
         return;
     };
-    let _ = append_event_at(&directory.join(EVENT_LOG_NAME), component, check, status, code);
+    let _ = append_event_at(
+        &directory.join(EVENT_LOG_NAME),
+        component,
+        check,
+        status,
+        code,
+    );
 }
 
 pub fn record_application_startup() {
@@ -220,8 +225,7 @@ pub fn write_windows_report(
     authority: &crate::system::PolicyAuthorityCheck,
 ) -> Result<PathBuf, &'static str> {
     use crate::system::{
-        PolicyChangeAssessment, WritePolicyStatus, WriteProtectionPreflight,
-        WriteProtectionSupport,
+        PolicyChangeAssessment, WritePolicyStatus, WriteProtectionPreflight, WriteProtectionSupport,
     };
 
     let _guard = DIAGNOSTIC_LOCK
@@ -323,8 +327,8 @@ pub fn write_windows_report(
         }
     });
 
-    let serialized = serde_json::to_vec_pretty(&report)
-        .map_err(|_| "Tanılama raporu hazırlanamadı.")?;
+    let serialized =
+        serde_json::to_vec_pretty(&report).map_err(|_| "Tanılama raporu hazırlanamadı.")?;
     let path = directory.join(REPORT_FILE_NAME);
     write_report_atomically(&path, &serialized)?;
 
@@ -394,14 +398,8 @@ mod tests {
     #[test]
     fn event_log_contains_only_fixed_diagnostic_fields() {
         let path = temporary_path();
-        append_event_at(
-            &path,
-            "application",
-            "startup",
-            "ok",
-            "application_started",
-        )
-        .expect("event should be written");
+        append_event_at(&path, "application", "startup", "ok", "application_started")
+            .expect("event should be written");
 
         let line = fs::read_to_string(&path).expect("event should be readable");
         let event: serde_json::Value =
