@@ -4,8 +4,12 @@ use eframe::egui::{self, Align, Color32, CornerRadius, Layout, RichText, Sense, 
 
 use crate::{
     examinations::ExaminationStore,
+    system::WriteProtectionPreflight,
     updater::{self, SharedUpdateStatus, UpdateSnapshot},
 };
+
+#[cfg(target_os = "windows")]
+use crate::system::{WritePolicyStatus, WriteProtectionSupport};
 
 const BACKGROUND: Color32 = Color32::from_rgb(15, 23, 31);
 const SIDEBAR: Color32 = Color32::from_rgb(18, 30, 40);
@@ -95,6 +99,7 @@ pub fn show(
     root_ui: &mut egui::Ui,
     graphics_info: Option<&(String, String)>,
     graphics_adapters: &[String],
+    write_protection: &WriteProtectionPreflight,
     update_status: &SharedUpdateStatus,
     selected_view: &mut WorkspaceView,
     examination_ui: &mut ExaminationUiState,
@@ -166,6 +171,9 @@ pub fn show(
                                                 selected_view,
                                                 examination_notice,
                                             ),
+                                            WorkspaceView::Settings => {
+                                                draw_settings(content, write_protection)
+                                            }
                                             view => draw_placeholder(content, *view),
                                         }
                                         content.add_space(20.0);
@@ -662,6 +670,219 @@ fn draw_system_card(
                     .color(MUTED),
             );
         });
+}
+
+fn draw_settings(ui: &mut egui::Ui, preflight: &WriteProtectionPreflight) {
+    egui::Frame::new()
+        .fill(SURFACE)
+        .stroke(Stroke::new(1.0, BORDER))
+        .corner_radius(CornerRadius::same(14))
+        .inner_margin(egui::Margin::same(22))
+        .show(ui, |ui| {
+            ui.label(
+                RichText::new("WINDOWS YAZMA KORUMASI ÖN KONTROLÜ")
+                    .size(10.0)
+                    .strong()
+                    .color(ACCENT),
+            );
+            ui.add_space(6.0);
+            ui.label(
+                RichText::new(
+                    "Bu adım yalnızca bilgisayarın mevcut durumunu okur. Hiçbir sistem ayarını değiştirmez.",
+                )
+                .size(12.0)
+                .color(TEXT),
+            );
+            ui.add_space(16.0);
+
+            match preflight {
+                #[cfg(target_os = "windows")]
+                WriteProtectionPreflight::Windows(status) => {
+                    draw_preflight_row(
+                        ui,
+                        "Windows",
+                        status.product_name.as_deref().unwrap_or("Bilgi okunamadı"),
+                    );
+                    draw_preflight_row(
+                        ui,
+                        "Edisyon",
+                        status.edition_id.as_deref().unwrap_or("Bilgi okunamadı"),
+                    );
+                    draw_preflight_row(
+                        ui,
+                        "Derleme",
+                        &status
+                            .build_number
+                            .map(|build| build.to_string())
+                            .unwrap_or_else(|| "Bilgi okunamadı".to_owned()),
+                    );
+                    draw_preflight_row(
+                        ui,
+                        "Uygulama yetkisi",
+                        match status.process_is_elevated {
+                            Some(true) => "Yönetici olarak yükseltilmiş",
+                            Some(false) => "Yükseltilmiş değil",
+                            None => "Kontrol edilemedi",
+                        },
+                    );
+
+                    ui.add_space(12.0);
+                    ui.label(
+                        RichText::new("İŞLETİM SİSTEMİ DESTEK DURUMU")
+                            .size(10.0)
+                            .strong()
+                            .color(MUTED),
+                    );
+                    let (support_text, support_color) = match &status.support {
+                        WriteProtectionSupport::Supported => (
+                            "Windows edisyonu ve derlemesi Microsoft destek listesiyle eşleşiyor.",
+                            SUCCESS,
+                        ),
+                        WriteProtectionSupport::UnsupportedEdition(_edition) => (
+                            "Bu Windows edisyonu destek listesinde doğrulanamadı.",
+                            WARNING,
+                        ),
+                        WriteProtectionSupport::UnsupportedBuild(_build) => (
+                            "Windows derlemesi gereken en düşük sürümün altında.",
+                            WARNING,
+                        ),
+                        WriteProtectionSupport::Unknown => (
+                            "Destek durumu için gerekli Windows bilgileri okunamadı.",
+                            WARNING,
+                        ),
+                    };
+                    ui.label(RichText::new(support_text).size(11.0).color(support_color));
+                    match &status.support {
+                        WriteProtectionSupport::UnsupportedEdition(edition) => {
+                            ui.label(
+                                RichText::new(format!("Okunan edisyon: {edition}"))
+                                    .size(10.0)
+                                    .color(MUTED),
+                            );
+                        }
+                        WriteProtectionSupport::UnsupportedBuild(build) => {
+                            ui.label(
+                                RichText::new(format!("Okunan derleme: {build}"))
+                                    .size(10.0)
+                                    .color(MUTED),
+                            );
+                        }
+                        _ => {}
+                    }
+
+                    ui.add_space(12.0);
+                    ui.label(
+                        RichText::new("BİLGİSAYAR GRUP İLKESİ KAYDI")
+                            .size(10.0)
+                            .strong()
+                            .color(MUTED),
+                    );
+                    let (policy_text, policy_color) = match &status.computer_policy {
+                        WritePolicyStatus::Enabled => (
+                            "HKLM içindeki Deny_Write değeri etkin (1) görünüyor.",
+                            ACCENT,
+                        ),
+                        WritePolicyStatus::Disabled => (
+                            "HKLM içindeki Deny_Write değeri devre dışı (0).",
+                            WARNING,
+                        ),
+                        WritePolicyStatus::NotConfigured => (
+                            "İlgili HKLM Grup İlkesi değeri tanımlı değil.",
+                            WARNING,
+                        ),
+                        WritePolicyStatus::UnexpectedValue(_value) => (
+                            "İlgili HKLM Grup İlkesi değeri beklenmeyen bir sayı içeriyor.",
+                            WARNING,
+                        ),
+                        WritePolicyStatus::Unknown(_) => (
+                            "İlgili HKLM Grup İlkesi değeri okunamadı.",
+                            WARNING,
+                        ),
+                    };
+                    ui.label(RichText::new(policy_text).size(11.0).color(policy_color));
+                    match &status.computer_policy {
+                        WritePolicyStatus::UnexpectedValue(value) => {
+                            ui.label(
+                                RichText::new(format!("Okunan değer: {value}"))
+                                    .size(10.0)
+                                    .color(MUTED),
+                            );
+                        }
+                        WritePolicyStatus::Unknown(error) => {
+                            ui.label(RichText::new(error).size(10.0).color(MUTED));
+                        }
+                        _ => {}
+                    }
+
+                    if !status.read_warnings.is_empty() {
+                        ui.add_space(10.0);
+                        for warning in &status.read_warnings {
+                            ui.label(RichText::new(warning).size(10.0).color(WARNING));
+                        }
+                    }
+                }
+                #[cfg(not(target_os = "windows"))]
+                WriteProtectionPreflight::UnsupportedPlatform => {
+                    ui.label(
+                        RichText::new(
+                            "Bu ilk ön kontrol Windows içindir. Diğer işletim sistemlerinin yazma koruması ayrı olarak değerlendirilecektir.",
+                        )
+                        .size(12.0)
+                        .color(WARNING),
+                    );
+                }
+            }
+        });
+
+    ui.add_space(12.0);
+    egui::Frame::new()
+        .fill(SURFACE_RAISED)
+        .stroke(Stroke::new(1.0, BORDER))
+        .corner_radius(CornerRadius::same(12))
+        .inner_margin(egui::Margin::same(18))
+        .show(ui, |ui| {
+            ui.label(
+                RichText::new("ÖNEMLİ GÜVENLİK SINIRI")
+                    .size(10.0)
+                    .strong()
+                    .color(WARNING),
+            );
+            ui.add_space(6.0);
+            ui.label(
+                RichText::new(
+                    "Bu ekran yalnızca Windows sistem bilgilerini ve HKLM'deki Grup İlkesi kayıt göstergesini okur. Ayar değiştirmez, yönetici yetkisi istemez ve USB aygıtını açmaz.",
+                )
+                .size(11.0)
+                .color(TEXT),
+            );
+            ui.add_space(6.0);
+            ui.label(
+                RichText::new(
+                    "İlke kaydının etkin görünmesi, belirli bir USB aygıtının fiilen salt okunur olduğunu tek başına kanıtlamaz. MDM/Intune ilkeleri ve aygıtın gerçek salt okunur durumu bu aşamada denetlenmez.",
+                )
+                .size(10.0)
+                .color(MUTED),
+            );
+            ui.add_space(6.0);
+            ui.label(
+                RichText::new(
+                    "Windows'un bu bilgisayar ilkesi tüm çıkarılabilir disk sınıfını etkiler; yalnızca DUYRA'nın seçtiği tek USB belleği değil.",
+                )
+                .size(10.0)
+                .color(MUTED),
+            );
+        });
+}
+
+#[cfg(target_os = "windows")]
+fn draw_preflight_row(ui: &mut egui::Ui, label: &str, value: &str) {
+    ui.horizontal(|ui| {
+        ui.set_min_width(ui.available_width());
+        ui.label(RichText::new(label).size(11.0).color(MUTED));
+        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+            ui.label(RichText::new(value).size(11.0).strong().color(TEXT));
+        });
+    });
 }
 
 fn draw_placeholder(ui: &mut egui::Ui, view: WorkspaceView) {

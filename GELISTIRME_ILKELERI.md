@@ -335,3 +335,34 @@ Kullanıcı, Windows üzerinde v0.1.9 → v0.1.10 otomatik güncellemesini ve a�
 ### Sıradaki ürün hedefi
 
 Windows üzerinde yazılımsal delil yazma-koruma ön kontrolünü tasarlamak: desteklenen Windows sürümü/edisyonu, yönetici yetkisi, mevcut removable-storage ilkesi ve etkinin kapsamını yalnızca okumak; hiçbir sistem ilkesini kullanıcı onayı olmadan değiştirmemek. İlk küçük hedef sadece **durum tespiti ve kullanıcıya açıklama** olacak; USB aygıtını açma/kopyalama bu hedefe eklenmeyecek.
+
+## 16. Windows yazma koruması ön kontrolü — v0.1.11
+
+**Mevcut hedef:** Windows işletim sistemi ve bilgisayar düzeyindeki çıkarılabilir disk yazma engelleme ilkesini yalnızca okumak; henüz USB aygıtına erişmemek.
+
+### Kapsam
+
+- Windows ürün adı, `EditionID` ve `CurrentBuildNumber` değerlerini kayıt defterinden salt okunur olarak oku.
+- DUYRA işleminin mevcut erişim belirtecinde yükseltilmiş yönetici yetkisi olup olmadığını göster.
+- Yalnızca şu bilgisayar düzeyi Grup İlkesi kaydını oku: `HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\RemovableStorageDevices\\{53f5630d-b6bf-11d0-94f2-00a0c91efb8b}\\Deny_Write`.
+- Değer `1` ise kayıt etkin, `0` ise devre dışı, yoksa tanımlı değil, başka bir değer ise beklenmeyen olarak gösterilir. Okuma hatası bilinmiyor durumudur.
+- Edisyon ve derleme bilgilerini Microsoft'un `RemovableDiskDenyWriteAccess` destek kapsamıyla karşılaştır: Windows 10 sürüm 1809 / derleme 17763 ve sonrası; Pro, Enterprise, Education ve IoT Enterprise edisyon aileleri. Kaynak: [Microsoft Storage Policy CSP](https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-storage).
+- Kontrol Ayarlar ekranında açıklanır; Linux'ta bu Windows kontrolünün uygulanmadığı belirtilir.
+
+### Bilinçli olarak yapılmayanlar
+
+- Kayıt defterine yazma, Grup İlkesi değiştirme, politika etkinleştirme veya devre dışı bırakma yoktur.
+- Yönetici izni isteme veya UAC yükseltmesi yoktur.
+- USB aygıtı keşfi, bağlama, dosya listeleme, kopyalama veya hash alma yoktur.
+- MDM/Intune, kullanıcı kapsamlı ilkeler, diğer sınıf ilkeleri ve gerçek aygıt salt-okunur durumu bu hedefte kapsanmaz. Arayüz, okunan HKLM değeri dışında kapsamlı bir etkin politika değerlendirmesi yaptığını iddia etmez.
+- İlke etkin görünse bile “Delil koruma altında” durumu gösterilmez. İlke tüm çıkarılabilir disk sınıfını etkileyebilir; yalnızca DUYRA'nın seçtiği tek USB'yi değil.
+
+### Kabul ölçütleri
+
+1. Windows CI derlemesi ve testleri geçer.
+2. Salt okunur sistem bilgileri ve politika kaydı Settings ekranında görüntülenir.
+3. Linux görsel CI'sında Ayarlar ekranı açılır ve Windows'a özgü bu kontrolün mevcut olmadığı doğru biçimde gösterilir.
+4. Smoke test ve birim testleri hiçbir registry/policy değişikliği yapmaz.
+5. UI, “ilke kaydı” ile “aygıt salt okunur doğrulaması” arasındaki farkı açıkça anlatır.
+
+Bir sonraki ayrı hedef, kullanıcı onaylı ve etkisi açıklanmış bir Windows politika etkinleştirme yardımını değerlendirmek olabilir. Bu hedef tamamlanmadan politika değiştirme veya USB'ye erişim eklenmez.

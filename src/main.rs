@@ -11,6 +11,7 @@ use eframe::glow::HasContext;
 fn main() -> eframe::Result {
     let update_status = updater::check_on_startup();
     let graphics_adapters = system::video_adapters();
+    let write_protection = system::write_protection_preflight();
 
     let mut examination_ui = app::ExaminationUiState::load();
 
@@ -50,6 +51,7 @@ fn main() -> eframe::Result {
             ui,
             graphics_info.as_ref(),
             &graphics_adapters,
+            &write_protection,
             &update_status,
             &mut selected_view,
             &mut examination_ui,
