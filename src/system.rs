@@ -205,6 +205,71 @@ pub struct WindowsWriteProtectionPreflight {
     pub computer_policy: WritePolicyStatus,
     pub read_warnings: Vec<String>,
 }
+ 
+#[cfg(any(target_os = "windows", test))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PolicyChangeAssessment {
+    Managed,
+    Reviewable,
+    Unknown,
+}
+
+#[cfg(any(target_os = "windows", test))]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PolicyAuthorityCheck {
+    pub group_policy_applied: Option<bool>,
+    pub mdm_enrollment_detected: Option<bool>,
+    pub mdm_policy_present: Option<bool>,
+    pub domain_joined: Option<bool>,
+    pub current_policy_value_present: Option<bool>,
+}
+
+#[cfg(any(target_os = "windows", test))]
+impl PolicyAuthorityCheck {
+    pub fn unknown() -> Self {
+        Self {
+            group_policy_applied: None,
+            mdm_enrollment_detected: None,
+            mdm_policy_present: None,
+            domain_joined: None,
+            current_policy_value_present: None,
+        }
+    }
+
+    pub fn assessment(&self) -> PolicyChangeAssessment {
+        if self.group_policy_applied == Some(true)
+            || self.mdm_enrollment_detected == Some(true)
+            || self.mdm_policy_present == Some(true)
+            || self.domain_joined == Some(true)
+        {
+            return PolicyChangeAssessment::Managed;
+        }
+
+        if self.group_policy_applied == Some(false)
+            && self.mdm_enrollment_detected == Some(false)
+            && self.mdm_policy_present == Some(false)
+            && self.domain_joined == Some(false)
+            && self.current_policy_value_present == Some(false)
+        {
+            return PolicyChangeAssessment::Reviewable;
+        }
+
+        PolicyChangeAssessment::Unknown
+    }
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn parse_rsop_policy_marker(success: bool, output: &str) -> Option<bool> {
+    if !success {
+        return None;
+    }
+
+    match output.trim() {
+        "DUYRA_RSOP_APPLIED" => Some(true),
+        "DUYRA_RSOP_NONE" => Some(false),
+        _ => None,
+    }
+}
 
 #[cfg(any(target_os = "windows", test))]
 pub fn windows_write_protection_summary(status: &WindowsWriteProtectionPreflight) -> String {
@@ -322,7 +387,15 @@ mod windows_write_protection {
     use super::{
         WindowsWriteProtectionPreflight, WritePolicyStatus, assess_write_protection_support,
     };
-    use std::{ffi::c_void, mem::size_of, ptr};
+    use std::{
+        ffi::c_void,
+        mem::size_of,
+        path::PathBuf,
+        process::{Command, Stdio},
+        ptr,
+        thread,
+        time::{Duration, Instant},
+    };
 
     type HKey = *mut c_void;
     type Handle = *mut c_void;
@@ -371,6 +444,22 @@ mod windows_write_protection {
         #[link_name = "RegCloseKey"]
         fn reg_close_key(key: HKey) -> i32;
 
+        #[link_name = "RegQueryInfoKeyW"]
+        fn reg_query_info_key_w(
+            key: HKey,
+            class: *mut u16,
+            class_length: *mut u32,
+            reserved: *mut u32,
+            sub_key_count: *mut u32,
+            max_sub_key_length: *mut u32,
+            max_class_length: *mut u32,
+            value_count: *mut u32,
+            max_value_name_length: *mut u32,
+            max_value_length: *mut u32,
+            security_descriptor_length: *mut u32,
+            last_write_time: *mut c_void,
+        ) -> i32;
+
         #[link_name = "OpenProcessToken"]
         fn open_process_token(process: Handle, desired_access: u32, token: *mut Handle) -> i32;
 
@@ -382,6 +471,19 @@ mod windows_write_protection {
             information_length: u32,
             return_length: *mut u32,
         ) -> i32;
+    }
+
+    #[link(name = "netapi32")]
+    unsafe extern "system" {
+        #[link_name = "NetGetJoinInformation"]
+        fn net_get_join_information(
+            server: *const u16,
+            name_buffer: *mut *mut u16,
+            buffer_type: *mut u32,
+        ) -> u32;
+
+        #[link_name = "NetApiBufferFree"]
+        fn net_api_buffer_free(buffer: *mut c_void) -> u32;
     }
 
     #[link(name = "kernel32")]
@@ -581,6 +683,162 @@ mod windows_write_protection {
         }
     }
 
+    const MDM_ENROLLMENTS_KEY: &str = r"SOFTWARE\Microsoft\Enrollments";
+    const MDM_STORAGE_POLICY_KEY: &str =
+        r"SOFTWARE\Microsoft\PolicyManager\current\device\Storage";
+
+    fn registry_subkey_count(key_path: &str) -> Result<Option<u32>, String> {
+        let Some(key) = open_registry_key(key_path)? else {
+            return Ok(None);
+        };
+
+        let mut sub_key_count = 0u32;
+        let result = unsafe {
+            reg_query_info_key_w(
+                key,
+                ptr::null_mut(),
+                ptr::null_mut(),
+                ptr::null_mut(),
+                &mut sub_key_count,
+                ptr::null_mut(),
+                ptr::null_mut(),
+                ptr::null_mut(),
+                ptr::null_mut(),
+                ptr::null_mut(),
+                ptr::null_mut(),
+                ptr::null_mut(),
+            )
+        };
+        unsafe {
+            reg_close_key(key);
+        }
+
+        if result == ERROR_SUCCESS {
+            Ok(Some(sub_key_count))
+        } else {
+            Err(win32_error("Windows kayıt defteri alt anahtar sorgusu", result))
+        }
+    }
+
+    fn domain_joined() -> Option<bool> {
+        const NETSETUP_UNJOINED: u32 = 1;
+        const NETSETUP_WORKGROUP_NAME: u32 = 2;
+        const NETSETUP_DOMAIN_NAME: u32 = 3;
+
+        let mut name_buffer: *mut u16 = ptr::null_mut();
+        let mut join_status = 0u32;
+        let result =
+            unsafe { net_get_join_information(ptr::null(), &mut name_buffer, &mut join_status) };
+
+        if !name_buffer.is_null() {
+            unsafe {
+                net_api_buffer_free(name_buffer.cast::<c_void>());
+            }
+        }
+
+        if result != 0 {
+            return None;
+        }
+
+        match join_status {
+            NETSETUP_DOMAIN_NAME => Some(true),
+            NETSETUP_UNJOINED | NETSETUP_WORKGROUP_NAME => Some(false),
+            _ => None,
+        }
+    }
+
+    fn rsop_policy_applied() -> Option<bool> {
+        let system_root = std::env::var_os("SystemRoot")?;
+        let powershell = PathBuf::from(system_root)
+            .join("System32")
+            .join("WindowsPowerShell")
+            .join("v1.0")
+            .join("powershell.exe");
+
+        let script = r#"
+$ErrorActionPreference = 'Stop'
+$target = 'Software\Policies\Microsoft\Windows\RemovableStorageDevices\{53f5630d-b6bf-11d0-94f2-00a0c91efb8b}'
+try {
+    $setting = Get-CimInstance -Namespace 'root\RSOP\Computer' -ClassName 'RSOP_RegistryPolicySetting' -ErrorAction Stop |
+        Where-Object {
+            $_.registryKey -ieq $target -and
+            $_.valueName -ieq 'Deny_Write' -and
+            $_.precedence -eq 1 -and
+            -not $_.deleted
+        } |
+        Select-Object -First 1
+
+    if ($null -eq $setting) {
+        [Console]::Out.Write('DUYRA_RSOP_NONE')
+    } else {
+        [Console]::Out.Write('DUYRA_RSOP_APPLIED')
+    }
+    exit 0
+} catch {
+    [Console]::Error.Write('DUYRA_RSOP_UNKNOWN')
+    exit 2
+}
+"#;
+
+        let mut child = Command::new(powershell)
+            .args(["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()
+            .ok()?;
+
+        let started = Instant::now();
+        loop {
+            match child.try_wait() {
+                Ok(Some(_)) => break,
+                Ok(None) if started.elapsed() < Duration::from_secs(8) => {
+                    thread::sleep(Duration::from_millis(50));
+                }
+                Ok(None) | Err(_) => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return None;
+                }
+            }
+        }
+
+        let output = child.wait_with_output().ok()?;
+        let stdout = String::from_utf8(output.stdout).ok()?;
+        super::parse_rsop_policy_marker(output.status.success(), &stdout)
+    }
+
+    pub fn inspect_authority() -> PolicyAuthorityCheck {
+        let group_policy_applied = rsop_policy_applied();
+
+        let mdm_enrollment_detected = match registry_subkey_count(MDM_ENROLLMENTS_KEY) {
+            Ok(count) => Some(count.is_some_and(|count| count > 0)),
+            Err(_) => None,
+        };
+
+        let mdm_policy_present =
+            match read_registry_value(MDM_STORAGE_POLICY_KEY, "RemovableDiskDenyWriteAccess") {
+                Ok(value) => Some(value.is_some()),
+                Err(_) => None,
+            };
+
+        let current_policy_value_present = match read_policy() {
+            WritePolicyStatus::NotConfigured => Some(false),
+            WritePolicyStatus::Enabled
+            | WritePolicyStatus::Disabled
+            | WritePolicyStatus::UnexpectedValue(_) => Some(true),
+            WritePolicyStatus::Unknown(_) => None,
+        };
+
+        PolicyAuthorityCheck {
+            group_policy_applied,
+            mdm_enrollment_detected,
+            mdm_policy_present,
+            domain_joined: domain_joined(),
+            current_policy_value_present,
+        }
+    }
+
+
     pub fn inspect() -> WindowsWriteProtectionPreflight {
         let mut read_warnings = Vec::new();
 
@@ -637,6 +895,11 @@ mod windows_write_protection {
             read_warnings,
         }
     }
+}
+
+#[cfg(target_os = "windows")]
+pub fn inspect_windows_policy_authority() -> PolicyAuthorityCheck {
+    windows_write_protection::inspect_authority()
 }
 
 #[cfg(test)]
@@ -764,6 +1027,69 @@ mod write_protection_tests {
             policy_status_from_value(Some(7)),
             WritePolicyStatus::UnexpectedValue(7)
         );
+    }
+}
+
+#[cfg(test)]
+mod policy_authority_tests {
+    use super::{PolicyAuthorityCheck, PolicyChangeAssessment, parse_rsop_policy_marker};
+
+    #[test]
+    fn rsop_marker_requires_a_successful_exact_response() {
+        assert_eq!(parse_rsop_policy_marker(true, "DUYRA_RSOP_APPLIED"), Some(true));
+        assert_eq!(parse_rsop_policy_marker(true, "DUYRA_RSOP_NONE"), Some(false));
+        assert_eq!(parse_rsop_policy_marker(false, "DUYRA_RSOP_NONE"), None);
+        assert_eq!(parse_rsop_policy_marker(true, "DUYRA_RSOP_NONE extra"), None);
+        assert_eq!(parse_rsop_policy_marker(true, ""), None);
+    }
+
+    #[test]
+    fn any_detected_management_source_blocks_policy_changes() {
+        let mut check = reviewable_check();
+        check.group_policy_applied = Some(true);
+        assert_eq!(check.assessment(), PolicyChangeAssessment::Managed);
+
+        let mut check = reviewable_check();
+        check.mdm_enrollment_detected = Some(true);
+        assert_eq!(check.assessment(), PolicyChangeAssessment::Managed);
+
+        let mut check = reviewable_check();
+        check.mdm_policy_present = Some(true);
+        assert_eq!(check.assessment(), PolicyChangeAssessment::Managed);
+
+        let mut check = reviewable_check();
+        check.domain_joined = Some(true);
+        assert_eq!(check.assessment(), PolicyChangeAssessment::Managed);
+    }
+
+    #[test]
+    fn reviewable_result_requires_every_probe_to_confirm_no_management() {
+        assert_eq!(reviewable_check().assessment(), PolicyChangeAssessment::Reviewable);
+        assert_eq!(
+            PolicyAuthorityCheck::unknown().assessment(),
+            PolicyChangeAssessment::Unknown
+        );
+
+        let mut incomplete = reviewable_check();
+        incomplete.mdm_enrollment_detected = None;
+        assert_eq!(incomplete.assessment(), PolicyChangeAssessment::Unknown);
+    }
+
+    #[test]
+    fn unattributed_existing_policy_value_never_becomes_reviewable() {
+        let mut check = reviewable_check();
+        check.current_policy_value_present = Some(true);
+        assert_eq!(check.assessment(), PolicyChangeAssessment::Unknown);
+    }
+
+    fn reviewable_check() -> PolicyAuthorityCheck {
+        PolicyAuthorityCheck {
+            group_policy_applied: Some(false),
+            mdm_enrollment_detected: Some(false),
+            mdm_policy_present: Some(false),
+            domain_joined: Some(false),
+            current_policy_value_present: Some(false),
+        }
     }
 }
 
