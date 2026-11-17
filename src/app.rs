@@ -95,6 +95,8 @@ const FOOTER_HEIGHT: f32 = 48.0;
 pub struct ExaminationUiState {
     examinations: ExaminationStore,
     device_inventory: crate::device_inventory::DeviceInventory,
+    /// Yalnızca mevcut tarama listesindeki geçici satır seçimi; diske kaydedilmez.
+    selected_device_row: Option<usize>,
     selected_examination: Option<String>,
     examination_notice: Option<String>,
     #[cfg(target_os = "windows")]
@@ -120,6 +122,7 @@ impl ExaminationUiState {
         Self {
             examinations,
             device_inventory: crate::device_inventory::DeviceInventory::not_scanned(),
+            selected_device_row: None,
             selected_examination: None,
             examination_notice,
             #[cfg(target_os = "windows")]
@@ -194,6 +197,7 @@ pub fn show(
 ) {
     let examinations = &mut examination_ui.examinations;
     let selected_examination = &mut examination_ui.selected_examination;
+    let selected_device_row = &mut examination_ui.selected_device_row;
     let examination_notice = &mut examination_ui.examination_notice;
 
     #[cfg(target_os = "windows")]
@@ -272,6 +276,7 @@ pub fn show(
                                             WorkspaceView::Evidence => draw_evidence(
                                                 content,
                                                 &mut examination_ui.device_inventory,
+                                                selected_device_row,
                                             ),
                                             WorkspaceView::Settings => {
                                                 #[cfg(target_os = "windows")]
@@ -1253,7 +1258,11 @@ fn draw_preflight_row(ui: &mut egui::Ui, label: &str, value: &str) {
     });
 }
 
-fn draw_evidence(ui: &mut egui::Ui, inventory: &mut crate::device_inventory::DeviceInventory) {
+fn draw_evidence(
+    ui: &mut egui::Ui,
+    inventory: &mut crate::device_inventory::DeviceInventory,
+    selected_device_row: &mut Option<usize>,
+) {
     egui::Frame::new()
         .fill(SURFACE)
         .stroke(Stroke::new(1.0, BORDER))
@@ -1276,6 +1285,7 @@ fn draw_evidence(ui: &mut egui::Ui, inventory: &mut crate::device_inventory::Dev
                 });
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     if ui.button("Bağlı Aygıtları Tara").clicked() {
+                        *selected_device_row = None;
                         *inventory = crate::device_inventory::DeviceInventory::discover_present_disks();
                     }
                 });
@@ -1310,6 +1320,13 @@ fn draw_evidence(ui: &mut egui::Ui, inventory: &mut crate::device_inventory::Dev
                                 .strong()
                                 .color(TEXT),
                         );
+                        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                            let is_selected = *selected_device_row == Some(candidate.row);
+                            let button_label = if is_selected { "Seçildi" } else { "Bu aygıtı seç" };
+                            if ui.button(button_label).clicked() {
+                                *selected_device_row = Some(candidate.row);
+                            }
+                        });
                     });
                     let node_label = match candidate.node_removability {
                         crate::device_inventory::PnpNodeRemovability::RemovableFromParent => {
@@ -1349,6 +1366,45 @@ fn draw_evidence(ui: &mut egui::Ui, inventory: &mut crate::device_inventory::Dev
                         );
                     });
                     ui.separator();
+                }
+
+                if let Some(candidate) = inventory
+                    .candidates
+                    .iter()
+                    .find(|candidate| *selected_device_row == Some(candidate.row))
+                {
+                    ui.add_space(10.0);
+                    egui::Frame::new()
+                        .fill(SURFACE_RAISED)
+                        .stroke(Stroke::new(1.0, ACCENT))
+                        .corner_radius(CornerRadius::same(10))
+                        .inner_margin(egui::Margin::same(14))
+                        .show(ui, |ui| {
+                            ui.label(
+                                RichText::new("GEÇİCİ AYGIT SEÇİMİ")
+                                    .size(9.0)
+                                    .strong()
+                                    .color(ACCENT),
+                            );
+                            ui.add_space(4.0);
+                            ui.label(
+                                RichText::new(&candidate.display_name)
+                                    .size(13.0)
+                                    .strong()
+                                    .color(TEXT),
+                            );
+                            ui.label(
+                                RichText::new(
+                                    "Seçim yalnızca bu DUYRA oturumunda tutulur; yeniden taramada sıfırlanır ve inceleme kaydına yazılmaz.",
+                                )
+                                .size(10.0)
+                                .color(MUTED),
+                            );
+                            ui.add_space(6.0);
+                            if ui.button("Seçimi kaldır").clicked() {
+                                *selected_device_row = None;
+                            }
+                        });
                 }
             }
 
