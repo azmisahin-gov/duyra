@@ -19,14 +19,20 @@ use crate::system::{
 struct PolicyAuthorityUiState {
     result: Option<PolicyAuthorityCheck>,
     receiver: Option<std::sync::mpsc::Receiver<PolicyAuthorityCheck>>,
+    preflight: Option<WriteProtectionPreflight>,
+    report_status: Option<Result<(), &'static str>>,
 }
 
 #[cfg(target_os = "windows")]
 impl PolicyAuthorityUiState {
-    fn start(&mut self) {
+    fn start(&mut self, preflight: WriteProtectionPreflight) {
         if self.receiver.is_some() {
             return;
         }
+
+        self.preflight = Some(preflight);
+        self.report_status = None;
+        self.result = None;
 
         let (sender, receiver) = std::sync::mpsc::channel();
         self.receiver = Some(receiver);
@@ -41,20 +47,30 @@ impl PolicyAuthorityUiState {
         if spawn_result.is_err() {
             self.receiver = None;
             self.result = Some(PolicyAuthorityCheck::unknown());
+            self.save_report();
         }
+    }
+
+    fn save_report(&mut self) {
+        if let (Some(preflight), Some(check)) = (&self.preflight, &self.result) {
+            self.report_status =
+                Some(crate::diagnostics::write_windows_report(preflight, check).map(|_| ()));
+        }
+    }
+
+    fn finish(&mut self, check: PolicyAuthorityCheck) {
+        self.result = Some(check);
+        self.receiver = None;
+        self.save_report();
     }
 
     fn poll(&mut self) {
         let result = self.receiver.as_ref().map(|receiver| receiver.try_recv());
 
         match result {
-            Some(Ok(check)) => {
-                self.result = Some(check);
-                self.receiver = None;
-            }
+            Some(Ok(check)) => self.finish(check),
             Some(Err(std::sync::mpsc::TryRecvError::Disconnected)) => {
-                self.result = Some(PolicyAuthorityCheck::unknown());
-                self.receiver = None;
+                self.finish(PolicyAuthorityCheck::unknown());
             }
             Some(Err(std::sync::mpsc::TryRecvError::Empty)) | None => {}
         }
@@ -84,7 +100,10 @@ pub struct ExaminationUiState {
 }
 
 impl ExaminationUiState {
-    pub fn load() -> Self {
+    pub fn load(write_protection: &WriteProtectionPreflight) -> Self {
+        #[cfg(not(target_os = "windows"))]
+        let _ = write_protection;
+
         let examinations = ExaminationStore::open_default();
         let examination_notice = examinations.notice();
 
@@ -93,7 +112,11 @@ impl ExaminationUiState {
             selected_examination: None,
             examination_notice,
             #[cfg(target_os = "windows")]
-            policy_authority: PolicyAuthorityUiState::default(),
+            policy_authority: {
+                let mut state = PolicyAuthorityUiState::default();
+                state.start(write_protection.clone());
+                state
+            },
         }
     }
 }
@@ -161,6 +184,16 @@ pub fn show(
     let examinations = &mut examination_ui.examinations;
     let selected_examination = &mut examination_ui.selected_examination;
     let examination_notice = &mut examination_ui.examination_notice;
+
+    #[cfg(target_os = "windows")]
+    {
+        examination_ui.policy_authority.poll();
+        if examination_ui.policy_authority.receiver.is_some() {
+            root_ui
+                .ctx()
+                .request_repaint_after(Duration::from_millis(100));
+        }
+    }
 
     root_ui.ctx().set_visuals(egui::Visuals::dark());
     root_ui.ctx().style_mut_of(egui::Theme::Dark, |style| {
@@ -916,8 +949,6 @@ fn draw_settings(
                             .strong()
                             .color(MUTED),
                     );
-                    policy_authority.poll();
-
                     let checking = policy_authority.receiver.is_some();
                     let check_button_label = if checking {
                         "Yönetim kaynağı denetleniyor…"
@@ -931,7 +962,7 @@ fn draw_settings(
                         .add_enabled(!checking, egui::Button::new(check_button_label))
                         .clicked()
                     {
-                        policy_authority.start();
+                        policy_authority.start(preflight.clone());
                     }
 
                     if checking {
@@ -951,7 +982,9 @@ fn draw_settings(
                             None => "Grup İlkesi kaynağı belirlenemedi",
                         };
                         let mdm_enrollment_text = match check.mdm_enrollment_detected {
-                            Some(true) => "MDM kayıt işareti bulundu",
+                            Some(true) => {
+                                "MDM kayıt işareti bulundu; eski/kalıntı kayıt olasılığı nedeniyle etkin yönetim doğrulanamadı"
+                            }
                             Some(false) => "MDM kayıt işareti saptanmadı",
                             None => "MDM kayıt durumu belirlenemedi",
                         };
@@ -1012,6 +1045,63 @@ fn draw_settings(
                         );
                     }
 
+                    ui.add_space(12.0);
+                    ui.separator();
+                    ui.label(
+                        RichText::new("OTOMATİK TANILAMA RAPORU")
+                            .size(10.0)
+                            .strong()
+                            .color(MUTED),
+                    );
+                    match &policy_authority.report_status {
+                        Some(Ok(())) => {
+                            ui.label(
+                                RichText::new("Başlangıç denetimi tamamlandı; yerel tanılama raporu güncellendi.")
+                                    .size(10.0)
+                                    .color(SUCCESS),
+                            );
+                            if ui.button("Tanılama klasörünü aç").clicked()
+                                && let Err(error) = crate::diagnostics::open_diagnostics_folder()
+                            {
+                                ui.label(RichText::new(error).size(10.0).color(WARNING));
+                            }
+                        }
+                        Some(Err(error)) => {
+                            ui.label(
+                                RichText::new(format!("Tanılama raporu kaydedilemedi: {error}"))
+                                    .size(10.0)
+                                    .color(WARNING),
+                            );
+                        }
+                        None if checking => {
+                            ui.label(
+                                RichText::new("Denetim arka planda sürüyor; tamamlandığında rapor otomatik kaydedilecek.")
+                                    .size(10.0)
+                                    .color(MUTED),
+                            );
+                        }
+                        None => {
+                            ui.label(
+                                RichText::new("Tanılama raporu henüz oluşturulmadı.")
+                                    .size(10.0)
+                                    .color(MUTED),
+                            );
+                        }
+                    }
+                    ui.label(
+                        RichText::new(crate::diagnostics::diagnostics_directory_hint())
+                            .size(10.0)
+                            .color(MUTED),
+                    );
+                    ui.label(
+                        RichText::new(
+                            "Kayıtlar yalnızca yerel diskte tutulur; hiçbir yere gönderilmez. Rapor kullanıcı/kurum adlarını, hesap bilgilerini, cihaz kimliklerini veya ham kayıt defteri/komut çıktılarını içermez.",
+                        )
+                        .size(10.0)
+                        .color(MUTED),
+                    );
+
+                    ui.add_space(8.0);
                     ui.label(
                         RichText::new(
                             "Bu denetim yalnızca okuma yapar. Grup İlkesi, kayıt defteri veya USB aygıtı değiştirilmez. Yönetim kaynağı belirlenemezse sonraki aç/kapat işlemi sunulmaz.",
@@ -1057,7 +1147,7 @@ fn draw_settings(
             ui.add_space(6.0);
             ui.label(
                 RichText::new(
-                    "İlke kaydının etkin görünmesi, belirli bir USB aygıtının fiilen salt okunur olduğunu tek başına kanıtlamaz. MDM/Intune yönetim işaretleri için aşağıdaki kaynak denetimini çalıştırın; gerçek aygıt durumu ayrıca doğrulanmalıdır.",
+                    "İlke kaydının etkin görünmesi, belirli bir USB aygıtının fiilen salt okunur olduğunu tek başına kanıtlamaz. MDM/Intune yönetim işaretleri başlangıçta arka planda denetlenir; gerçek aygıt durumu ayrıca doğrulanmalıdır.",
                 )
                 .size(10.0)
                 .color(MUTED),

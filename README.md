@@ -22,6 +22,17 @@ DUYRA günlükleri ve uygulama verileri ayrı tutulur:
 
 İlk klasörün önceden bulunması gerekmez; kullanıcı tarafından oluşturulabilir. Uygulamayı `C:\` kök dizinine veya yönetici izni gerektiren bir klasöre koymayın. Otomatik güncelleme, uygulamanın bulunduğu klasöre yazabilmelidir.
 
+## Otomatik sistem tanılaması
+
+Windows'ta DUYRA açıldığında sistem ön kontrolü ve politika yönetim kaynağı denetimi arka planda otomatik çalışır. Sonuç tamamlandığında yerel bir JSON raporu oluşturulur:
+
+- Rapor: `%LOCALAPPDATA%\DUYRA\diagnostics\latest-report.json`
+- Olay kaydı: `%LOCALAPPDATA%\DUYRA\diagnostics\events.jsonl` (256 KiB sınırında döndürülür; önceki dosya `events.jsonl.1` olarak tutulur)
+
+Ayarlar ekranındaki **Tanılama klasörünü aç** düğmesi bu klasörü açar. Kullanıcıdan PowerShell komutu, kayıt defteri çıktısı veya ekran görüntüsü toplaması beklenmez. Denetimler salt okunurdur; kayıt defteri/Grup İlkesi değiştirilmez, MDM bağlantısı kesilmez ve USB aygıtı açılmaz.
+
+Tanılama kayıtları yerel diskte kalır; ağa, GitHub'a veya DUYRA geliştiricilerine gönderilmez. Rapor yalnızca uygulama sürümü, Windows edisyon/derleme bilgisi ve kontrol sonuçlarını içerir. Kullanıcı/hesap adı, cihaz/tenant kimliği, etki alanı adı, ham komut/registry çıktısı, dosya yolu veya USB kimliği kaydedilmez. Bu rapor sistem tanılamasıdır; inceleme/delil içeriğini kapsamaz.
+
 ## İlk sürümün kapsamı
 
 Ana ekran; Genel Bakış, İncelemeler, Delil Dosyaları, Ses İnceleme, Deşifre, Analiz, Raporlar ve Ayarlar için ortak gezinme düzenini sağlar. Henüz etkin olmayan bölümler açıkça belirtilir. Ses işleme ve delil iş akışları sırayla tamamlanacaktır.
