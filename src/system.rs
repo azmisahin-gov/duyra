@@ -260,6 +260,57 @@ impl PolicyAuthorityCheck {
     }
 }
 
+/// Politika değiştirme henüz sunulmadan önce gerekli güvenlik ön koşullarını sınıflandırır.
+/// Bu kontrol yalnızca değerlendirme yapar; kayıt defterine veya sistem politikasına yazmaz.
+#[cfg(any(target_os = "windows", test))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PolicyChangeReadiness {
+    UnsupportedWindows,
+    ManagedByOrganization,
+    SourceUnknown,
+    ExistingPolicyValue,
+    NotElevated,
+    PreconditionsMet,
+}
+
+#[cfg(any(target_os = "windows", test))]
+pub fn assess_policy_change_readiness(
+    status: &WindowsWriteProtectionPreflight,
+    authority: &PolicyAuthorityCheck,
+) -> PolicyChangeReadiness {
+    if !matches!(&status.support, WriteProtectionSupport::Supported) {
+        return PolicyChangeReadiness::UnsupportedWindows;
+    }
+
+    match authority.assessment() {
+        PolicyChangeAssessment::Managed => {
+            return PolicyChangeReadiness::ManagedByOrganization;
+        }
+        PolicyChangeAssessment::Unknown => {
+            return PolicyChangeReadiness::SourceUnknown;
+        }
+        PolicyChangeAssessment::Reviewable => {}
+    }
+
+    match &status.computer_policy {
+        WritePolicyStatus::NotConfigured => {}
+        WritePolicyStatus::Unknown(_) => {
+            return PolicyChangeReadiness::SourceUnknown;
+        }
+        WritePolicyStatus::Enabled
+        | WritePolicyStatus::Disabled
+        | WritePolicyStatus::UnexpectedValue(_) => {
+            return PolicyChangeReadiness::ExistingPolicyValue;
+        }
+    }
+
+    if status.process_is_elevated != Some(true) {
+        return PolicyChangeReadiness::NotElevated;
+    }
+
+    PolicyChangeReadiness::PreconditionsMet
+}
+
 #[cfg(any(target_os = "windows", test))]
 fn parse_rsop_policy_marker(success: bool, output: &str) -> Option<bool> {
     if !success {
@@ -1159,5 +1210,140 @@ mod windows_policy_authority_smoke_tests {
             result.domain_joined.is_some(),
             "NetGetJoinInformation should return a known join state on the Windows runner"
         );
+    }
+}
+
+#[cfg(test)]
+mod policy_change_readiness_tests {
+    use super::{
+        PolicyAuthorityCheck, PolicyChangeReadiness, WindowsWriteProtectionPreflight,
+        WritePolicyStatus, WriteProtectionSupport, assess_policy_change_readiness,
+    };
+
+    fn supported_status(
+        computer_policy: WritePolicyStatus,
+        process_is_elevated: Option<bool>,
+        support: WriteProtectionSupport,
+    ) -> WindowsWriteProtectionPreflight {
+        WindowsWriteProtectionPreflight {
+            product_name: Some("Windows 11 Pro".to_owned()),
+            edition_id: Some("Professional".to_owned()),
+            build_number: Some(26_300),
+            process_is_elevated,
+            support,
+            computer_policy,
+            read_warnings: Vec::new(),
+        }
+    }
+
+    fn unmanaged_authority() -> PolicyAuthorityCheck {
+        PolicyAuthorityCheck {
+            group_policy_applied: Some(false),
+            mdm_enrollment_detected: Some(false),
+            mdm_policy_present: Some(false),
+            domain_joined: Some(false),
+            current_policy_value_present: Some(false),
+        }
+    }
+
+    #[test]
+    fn prerequisites_are_met_only_for_supported_unmanaged_elevated_unconfigured_system() {
+        let status = supported_status(
+            WritePolicyStatus::NotConfigured,
+            Some(true),
+            WriteProtectionSupport::Supported,
+        );
+
+        assert_eq!(
+            assess_policy_change_readiness(&status, &unmanaged_authority()),
+            PolicyChangeReadiness::PreconditionsMet
+        );
+    }
+
+    #[test]
+    fn unsupported_windows_is_blocked() {
+        for support in [
+            WriteProtectionSupport::Unknown,
+            WriteProtectionSupport::UnsupportedBuild(17_762),
+            WriteProtectionSupport::UnsupportedEdition("Core".to_owned()),
+        ] {
+            let status = supported_status(WritePolicyStatus::NotConfigured, Some(true), support);
+
+            assert_eq!(
+                assess_policy_change_readiness(&status, &unmanaged_authority()),
+                PolicyChangeReadiness::UnsupportedWindows
+            );
+        }
+    }
+
+    #[test]
+    fn managed_and_unknown_authority_are_blocked() {
+        let status = supported_status(
+            WritePolicyStatus::NotConfigured,
+            Some(true),
+            WriteProtectionSupport::Supported,
+        );
+
+        let mut managed = unmanaged_authority();
+        managed.mdm_policy_present = Some(true);
+        assert_eq!(
+            assess_policy_change_readiness(&status, &managed),
+            PolicyChangeReadiness::ManagedByOrganization
+        );
+
+        let mut unknown = unmanaged_authority();
+        unknown.mdm_enrollment_detected = Some(true);
+        assert_eq!(
+            assess_policy_change_readiness(&status, &unknown),
+            PolicyChangeReadiness::SourceUnknown
+        );
+
+        assert_eq!(
+            assess_policy_change_readiness(&status, &PolicyAuthorityCheck::unknown()),
+            PolicyChangeReadiness::SourceUnknown
+        );
+    }
+
+    #[test]
+    fn an_existing_policy_value_is_never_overwritten_by_a_future_change_flow() {
+        let cases = [
+            WritePolicyStatus::Enabled,
+            WritePolicyStatus::Disabled,
+            WritePolicyStatus::UnexpectedValue(7),
+        ];
+
+        for policy in cases {
+            let status = supported_status(policy, Some(true), WriteProtectionSupport::Supported);
+
+            assert_eq!(
+                assess_policy_change_readiness(&status, &unmanaged_authority()),
+                PolicyChangeReadiness::ExistingPolicyValue
+            );
+        }
+    }
+
+    #[test]
+    fn unreadable_policy_value_and_non_elevated_process_are_blocked() {
+        let unreadable = supported_status(
+            WritePolicyStatus::Unknown("private error details".to_owned()),
+            Some(true),
+            WriteProtectionSupport::Supported,
+        );
+        assert_eq!(
+            assess_policy_change_readiness(&unreadable, &unmanaged_authority()),
+            PolicyChangeReadiness::SourceUnknown
+        );
+
+        for elevation in [Some(false), None] {
+            let status = supported_status(
+                WritePolicyStatus::NotConfigured,
+                elevation,
+                WriteProtectionSupport::Supported,
+            );
+            assert_eq!(
+                assess_policy_change_readiness(&status, &unmanaged_authority()),
+                PolicyChangeReadiness::NotElevated
+            );
+        }
     }
 }
