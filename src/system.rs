@@ -356,7 +356,7 @@ mod windows_write_protection {
 
     fn open_registry_key(path: &str) -> Result<Option<HKey>, String> {
         let path = to_wide(path);
-        let hkey_local_machine = 0x8000_0002u32 as usize as HKey;
+        let hkey_local_machine = (-2_147_483_646isize) as HKey;
         let mut key: HKey = ptr::null_mut();
 
         let result = unsafe {
