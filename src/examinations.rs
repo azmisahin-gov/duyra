@@ -72,6 +72,18 @@ impl ExaminationStore {
         self.storage_error.as_deref()
     }
 
+    /// Returns a fixed, privacy-safe startup state for local diagnostics.
+    /// No path, record identifier, or underlying filesystem error is exposed.
+    pub fn diagnostic_state(&self) -> (&'static str, &'static str) {
+        if self.storage_error.is_some() {
+            ("unknown", "examination_store_unavailable")
+        } else if !self.load_warnings.is_empty() {
+            ("warning", "examination_store_load_warnings")
+        } else {
+            ("ok", "examination_store_ready")
+        }
+    }
+
     pub fn notice(&self) -> Option<String> {
         if let Some(error) = &self.storage_error {
             return Some(format!(
@@ -281,6 +293,49 @@ fn restrict_directory_permissions(directory: &Path) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn diagnostic_state_is_ok_for_an_empty_usable_store() {
+        let directory = std::env::temp_dir().join(format!("duyra-test-{}", Uuid::new_v4()));
+        let store = ExaminationStore::open_at(directory.clone());
+
+        assert_eq!(store.diagnostic_state(), ("ok", "examination_store_ready"));
+
+        fs::remove_dir_all(directory).expect("Test kayıt klasörü temizlenebilmeli.");
+    }
+
+    #[test]
+    fn diagnostic_state_warns_without_deleting_unreadable_records() {
+        let directory = std::env::temp_dir().join(format!("duyra-test-{}", Uuid::new_v4()));
+        fs::create_dir_all(&directory).expect("Test klasörü oluşturulabilmeli.");
+        let invalid_record = directory.join("unreadable.json");
+        fs::write(&invalid_record, b"{ invalid json").expect("Test kaydı yazılabilmeli.");
+
+        let store = ExaminationStore::open_at(directory.clone());
+
+        assert_eq!(
+            store.diagnostic_state(),
+            ("warning", "examination_store_load_warnings")
+        );
+        assert!(invalid_record.exists(), "Sorunlu kayıt korunmalı.");
+
+        fs::remove_dir_all(directory).expect("Test kayıt klasörü temizlenebilmeli.");
+    }
+
+    #[test]
+    fn diagnostic_state_is_unknown_when_storage_path_is_unavailable() {
+        let file_path = std::env::temp_dir().join(format!("duyra-test-{}", Uuid::new_v4()));
+        fs::write(&file_path, b"not a directory").expect("Engelleyici dosya oluşturulabilmeli.");
+
+        let store = ExaminationStore::open_at(file_path.clone());
+
+        assert_eq!(
+            store.diagnostic_state(),
+            ("unknown", "examination_store_unavailable")
+        );
+
+        fs::remove_file(file_path).expect("Engelleyici test dosyası silinebilmeli.");
+    }
 
     #[test]
     fn examination_record_is_available_after_reopening_store() {
