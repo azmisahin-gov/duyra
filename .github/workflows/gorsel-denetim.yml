@@ -46,7 +46,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Linux uygulamasını derle
-        run: cargo build --release
+        run: cargo build --release --features eframe/x11
 
       - name: Yazılım OpenGL ile DUYRA penceresini aç ve görüntüsünü al
         run: |
