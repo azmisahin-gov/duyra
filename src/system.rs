@@ -393,6 +393,7 @@ mod windows_write_protection {
     use std::{
         ffi::c_void,
         mem::size_of,
+        os::windows::process::CommandExt,
         path::PathBuf,
         process::{Command, Stdio},
         ptr, thread,
@@ -413,6 +414,7 @@ mod windows_write_protection {
     const TOKEN_QUERY: u32 = 0x0008;
     const TOKEN_ELEVATION_CLASS: u32 = 20;
     const MAX_REGISTRY_VALUE_BYTES: usize = 64 * 1024;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
     const CURRENT_VERSION_KEY: &str = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion";
     const REMOVABLE_DISK_POLICY_KEY: &str = r"SOFTWARE\Policies\Microsoft\Windows\RemovableStorageDevices\{53f5630d-b6bf-11d0-94f2-00a0c91efb8b}";
@@ -792,6 +794,7 @@ try {
             ])
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
+            .creation_flags(CREATE_NO_WINDOW)
             .spawn()
             .ok()?;
 
