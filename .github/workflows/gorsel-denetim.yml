@@ -9,7 +9,7 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "build.rs"
-      - "scripts/ci-ekran-goruntusu.ps1"
+      - "scripts/ci-ekran-goruntusu.sh"
       - ".github/workflows/gorsel-denetim.yml"
   workflow_dispatch:
 
@@ -17,9 +17,9 @@ permissions:
   contents: read
 
 jobs:
-  windows:
-    name: Windows uygulama ekran görüntüsü
-    runs-on: windows-latest
+  linux:
+    name: Linux yazılım OpenGL ana ekran görüntüsü
+    runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
@@ -29,21 +29,35 @@ jobs:
       - name: Rust araçlarını kur
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Linux grafik ve pencere bağımlılıklarını kur
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            xvfb xauth xdotool imagemagick mesa-utils \
+            pkg-config \
+            libx11-dev libx11-xcb-dev libxcb1-dev \
+            libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+            libxcb-randr0-dev libxcb-xinerama0-dev \
+            libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev \
+            libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev \
+            libegl1-mesa-dev libgl1-mesa-dev libgl1-mesa-dri
+
       - name: Rust bağımlılık önbelleğini yükle
         uses: Swatinem/rust-cache@v2
 
-      - name: Windows uygulamasını derle
+      - name: Linux uygulamasını derle
         run: cargo build --release
 
-      - name: DUYRA penceresini aç ve ekran görüntüsünü al
-        shell: pwsh
-        run: ./scripts/ci-ekran-goruntusu.ps1
+      - name: Yazılım OpenGL ile DUYRA penceresini aç ve görüntüsünü al
+        run: |
+          xvfb-run -a -s "-screen 0 1600x1000x24 -nolisten tcp" \
+            bash scripts/ci-ekran-goruntusu.sh
 
       - name: Görsel deneme çıktısını sakla
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: duyra-gorsel-denetim-${{ github.sha }}
+          name: duyra-gorsel-denetim-linux-${{ github.sha }}
           path: artifacts/gorsel-denetim/
           if-no-files-found: error
           retention-days: 7
