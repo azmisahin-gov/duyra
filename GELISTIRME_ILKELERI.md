@@ -382,11 +382,12 @@ Bir sonraki ayrı hedef, kullanıcı onaylı ve etkisi açıklanmış bir Window
 - Kabul sonucu: **başarılı**. Bu test, yönetici yetkisinin doğru tespit edildiğini doğrular; yazma korumasının etkin olduğunu veya USB'nin salt okunur olduğunu kanıtlamaz.
 - Ön kontrol bilgileri bu sürümde Ayarlar'a veya günlük dosyasına kaydedilmez. Ayarlar ekranında ön kontrol özetini kopyalama düğmesi de henüz yoktur. Kullanıcının metni seçerek kopyalayamaması bu sürümün mevcut sınırıdır; kabul edilen ön kontrol işlevini başarısız kılmaz.
 
-### Sıradaki küçük kullanılabilirlik hedefi
+### v0.1.12 tamamlanan kullanılabilirlik hedefi
 
-Windows ön kontrol sonucuna **“Ön kontrol sonucunu kopyala”** eylemi eklemek. Bu eylem yalnızca kullanıcı tıkladığında, işletim sistemi/edisyon/derleme, yönetici yetkisi, destek kapsamı ve okunan HKLM ilke durumunu içeren kısa bir özeti panoya kopyalamalıdır. Kullanıcı adı, bilgisayar adı, özel dosya yolu veya USB içeriği özete girmemelidir. Sonuç otomatik kaydedilmemeli, günlük dosyasına yazılmamalı ve ağa gönderilmemelidir.
-
-Politika etkinleştirme tasarımı ve USB aygıtına erişim bu küçük hedefin kapsamına alınmaz; ayrı karar ve kabul ölçütü gerektirir.
+- Ayarlar ekranına **“Ön kontrol sonucunu kopyala”** eylemi eklendi; PR #5 tek commit ile birleştirildi ve v0.1.12 yayımlandı.
+- Özet yalnızca kullanıcı düğmeye bastığında panoya aktarılmak üzere hazırlanır. Otomatik kayıt, günlük yazımı ve ağ gönderimi eklenmedi.
+- Kullanıcı gerçek Windows ortamında panoya kopyalamanın başarısız olduğunu bildirdi. Kullanıcı, bu özetin mevcut yazma koruması hedefi için zorunlu olmadığını belirtti. Bu nedenle pano davranışı ayrı bir kullanılabilirlik konusu olarak kaldı; USB yazma koruması geliştirmesini bloke etmez.
+- Politika etkinleştirme/kapatma ve USB aygıtına erişim bu küçük hedefin kapsamına alınmadı; ayrı karar ve kabul ölçütü gerektirir.
 
 ## 17. Depo, dal, PR ve commit yönetimi
 
@@ -405,3 +406,62 @@ Politika etkinleştirme tasarımı ve USB aygıtına erişim bu küçük hedefin
 11. İş kapanırken tek durum özeti verilir: hedef, PR/merge commit'i, son CI sonucu, varsa Release, kullanıcı kabul durumu, kalan açık işler ve dal temizliği. Tamamlanmamış iş tamamlandı diye sunulmaz.
 
 **Çalışma hatırlatıcısı:** Önce planla, kapsamı sabitle, tek yerde uygula, aynı PR içinde düzelt, son hâlini doğrula, birleştir, dalı temizle ve sonucu kaydet. Daha çok commit/PR üretmek değil, doğrulanmış ürünü sade bir geçmişle teslim etmek başarıdır.
+
+
+## 18. Windows çıkarılabilir disk yazma koruması — kapsam kararı ve güvenli tasarım
+
+**Kullanıcı kapsam onayı — 17 Kasım 2026**
+
+Kullanıcı, DUYRA'nın ileride sunacağı ilk Windows aç/kapat işlevinin yalnızca seçilen tek bir USB belleği değil, Microsoft'un `Removable Disks: Deny write access` bilgisayar düzeyi ilkesi kapsamındaki tüm uygun çıkarılabilir diskleri etkilemesini kabul etti.
+
+Bu karar, özelliğin kapsamını açıkça belirtir; mevcut v0.1.12 uygulamasına politika yazma veya aygıt erişimi yetkisi vermez.
+
+### 18.1. Kapsam ve kullanıcıya açıklanacak etki
+
+- Microsoft belgesine göre `RemovableDiskDenyWriteAccess`, cihaz kapsamlıdır; Windows 10 sürüm 1809 ve sonrası ile Pro, Enterprise, Education ve IoT Enterprise edisyon ailelerinde desteklenir.
+- Etkinleştirildiğinde yazma erişimi ilgili çıkarılabilir depolama sınıfında engellenir. Bu, tek bir DUYRA incelemesine veya yalnızca o anda seçilmiş USB'ye özel değildir.
+- USB bellekler ve USB kart okuyucu üzerinden bağlanan microSD kartlar için gerçek sınıflandırma/etki ayrıca sınanmalıdır. Kart okuyucunun Windows'a hangi aygıt sınıfı olarak sunulduğu doğrulanmadan bütün microSD aygıtlarının kapsandığı varsayılmaz.
+- Etkinin bilgisayardaki diğer uygun çıkarılabilir diskleri de kapsadığı, kullanıcı onayı verilmeden önce açıkça gösterilir. Kullanıcı bu kapsamı kabul etmiştir.
+- İlke, Windows'un tüm dosya yazma yollarını engelleyen genel bir koruma değildir. Ağ paylaşımları, host klasör eşlemeleri, sanal disk dosyaları ve başka aygıt sınıfları bu ilkeye bakılarak koruma altında sayılmaz.
+- Windows Home veya destek kapsamı dışındaki Windows sürümleri için bu ilkenin çalıştığı varsayılmaz.
+
+### 18.2. Windows Sandbox ve VirtualBox kullanımı
+
+Kullanıcı Windows Sandbox ve VirtualBox gibi sanallaştırma araçlarını kullanabilir. Bu ürünlerin farklı depolama yolları, çıkarılabilir disk ilkesiyle karıştırılmamalıdır.
+
+- **Windows Sandbox:** Host klasörleri Sandbox içine eşlenebilir ve her eşlemenin `ReadOnly` davranışı ayrı belirlenir. Yazılabilir eşlenmiş klasörde yapılan değişiklikler Sandbox kapatıldıktan sonra host üzerinde kalabilir. DUYRA'nın çıkarılabilir disk ilkesi, bu klasör eşlemelerini otomatik olarak salt okunur yapmaz. Gerekli klasör koruması Sandbox yapılandırmasında ayrıca `ReadOnly=true` ile sağlanmalıdır.
+- **VirtualBox:** Fiziksel USB aygıtı konuk sisteme USB passthrough ile verilebilir. Konuk sistem aygıtı kullanmaya başladığında aygıt host üzerinde kullanılamaz hâle gelebilir. Host Windows ilkesinin, konuk işletim sistemindeki yazma erişimini de engellediği varsayılmaz; konuk işletim sisteminin kendi koruması ayrıca değerlendirilir.
+- **Sanal sabit diskler:** VDI/VHD gibi sanal disk dosyaları ile host'a bağlı fiziksel çıkarılabilir USB aynı şey değildir. Sanal disk dosyasının normal host dosya sistemi üzerindeki yazma davranışının bu politika tarafından engellendiği iddia edilmez.
+- Bu nedenle test matrisi en az şu senaryoları ayrı tutar: host'a bağlı USB bellek, USB kart okuyucu içindeki microSD, Sandbox host-klasör eşlemesi (salt okunur/yazılabilir) ve VirtualBox fiziksel USB passthrough. Her senaryo yalnızca kendi doğruladığı kapsam için raporlanır.
+
+### 18.3. Değişiklik kaynağını koruma ve geri alma şartları
+
+HKLM `SOFTWARE\\Policies` altında `Deny_Write` değerinin bulunması tek başına bu değeri kimin yönettiğini kanıtlamaz. Yerel Grup İlkesi, etki alanı Grup İlkesi veya MDM/Intune gibi yönetim mekanizmaları aynı politika alanını yönetebilir.
+
+DUYRA'nın ilerideki aç/kapat işlevi şu kuralları sağlamadan uygulanmayacaktır:
+
+1. Politikanın destek kapsamı ve mevcut değeri salt okunur incelenir. Mümkün olduğu ölçüde yerel GPO, etki alanı GPO ve MDM/Intune yönetimi ayrıştırılır.
+2. Politikanın yönetim kaynağı belirsizse veya kurum politikası tarafından yönetiliyorsa DUYRA değiştirme/geri alma işlemini reddeder; yalnızca mevcut durumu ve nedeni açıklar. Kullanıcının genel kapsamı kabul etmiş olması, kurumsal yönetim ilkesini ezme izni sayılmaz.
+3. DUYRA'nın değiştirmesine izin verilen yerel ve yönetilmeyen durumda, işlemden önce mevcut değerin varlığı, türü ve tam değeri saklanır. Önceki durum “yok” ise geri alma işlemi yalnızca DUYRA'nın oluşturduğu değeri kaldırabilir.
+4. Geri alma sırasında mevcut değer, DUYRA'nın son yazdığı değerle hâlâ aynı değilse dışarıdan değişiklik olmuş kabul edilir; DUYRA yeni değeri ezmez ve otomatik silme/geri yükleme yapmaz.
+5. Kullanıcıya etki alanı, değişecek ayar, önceki durum ve geri alma yöntemi açıkça gösterilir. Yönetici yükseltmesi yalnızca kullanıcı onayından sonra ve gereken işlem için istenir.
+6. İşlemden sonra politika yeniden okunur. Bu sonuç, tek başına bağlı aygıtın fiilen salt okunur olduğunu kanıtlamaz; arayüz “politika uygulandı” ile “aygıt salt okunur doğrulandı” durumlarını ayrı tutar.
+7. Etkin politika, aygıtın gerçek salt okunur davranışı doğrulanmadan “delil koruması doğrulandı” olarak sunulmaz.
+
+### 18.4. Test ve yayın koşulları
+
+- Registry/policy yazma testleri GitHub Actions üzerinde gerçek runner sistem politikasını değiştirmemelidir. Politika yazma/geri alma testleri yalnızca tek kullanımlık, snapshot alınmış Windows test VM'sinde yapılır.
+- Birim testleri önceki değerin yok/0/1/beklenmeyen türde olması, değişikliğin yarıda kalması, DUYRA sonrasında dışarıdan değer değiştirilmesi ve güvenli geri alma senaryolarını kapsar.
+- Windows CI biçim, Clippy, birim testleri ve x64 derlemeyi doğrular. Linux görsel CI yalnızca ortak arayüzü doğrular; Windows ilkesinin veya gerçek USB davranışının kanıtı sayılmaz.
+- Donanımsal yazma engelleyici varsa ek koruma katmanı olarak kullanılabilir; zorunlu ürün gereksinimi değildir.
+- Gerçek cihaz kabulü yalnızca ayrılmış, boş ve yeniden biçimlendirilebilir deneme USB'si/microSD ile yapılır. Gerçek delil aygıtına yazma denemesi yapılmaz.
+- Yönetilen politika, geri alma, sistem kapsamı veya aygıtın gerçek yazma engeli güvenilir biçimde doğrulanamıyorsa DUYRA koruma doğrulandı durumuna geçmez ve delil okuma akışını açmaz.
+
+### 18.5. Sıradaki tek ürün hedefi
+
+Windows için **kullanıcı onaylı, yönetim kaynağını koruyan ve geri alınabilir politika aç/kapat tasarımını** uygulamaya hazırlamak. İlk uygulama PR'ı; sahiplik/yönetim tespiti, durum yedekleme, değişiklik çakışması ve geri alma mantığını ayrı test edilebilir birimler hâline getirmeden HKLM yazma işlemini ürün akışına eklememelidir. Sonraki ayrı kabul hedefi, izole Windows VM ve ayrılmış deneme USB/microSD üzerinde gerçek davranışı doğrulamaktır.
+
+Kaynaklar:
+- Microsoft Storage Policy CSP: https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-storage
+- Windows Sandbox yapılandırması: https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-configure-using-wsb-file
+- Oracle VirtualBox USB desteği: https://download.virtualbox.org/virtualbox/7.0.0_BETA3/UserManual.pdf
