@@ -737,11 +737,11 @@ fn draw_settings(ui: &mut egui::Ui, preflight: &WriteProtectionPreflight) {
                             "Windows edisyonu ve derlemesi Microsoft destek listesiyle eşleşiyor.",
                             SUCCESS,
                         ),
-                        WriteProtectionSupport::UnsupportedEdition(edition) => (
+                        WriteProtectionSupport::UnsupportedEdition(_edition) => (
                             "Bu Windows edisyonu destek listesinde doğrulanamadı.",
                             WARNING,
                         ),
-                        WriteProtectionSupport::UnsupportedBuild(build) => (
+                        WriteProtectionSupport::UnsupportedBuild(_build) => (
                             "Windows derlemesi gereken en düşük sürümün altında.",
                             WARNING,
                         ),
