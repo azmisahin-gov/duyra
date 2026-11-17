@@ -15,10 +15,41 @@ pub enum InventoryState {
     Unknown,
 }
 
+/// PnP aygıt düğümünün kendi üst düğümünden ayrılabilme işareti.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum PnpRemovability {
-    ReportedRemovable,
-    NotConfirmed,
+pub enum PnpNodeRemovability {
+    RemovableFromParent,
+    NotMarkedRemovableFromParent,
+    Unknown,
+}
+
+/// Windows'un PnP aygıt örneği için bildirdiği çıkarma politikası.
+/// Bu değer tek başına takılı medyanın türünü veya yazılabilirliğini kanıtlamaz.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DeviceRemovalPolicy {
+    NoRemovalExpected,
+    OrderlyRemovalExpected,
+    SurpriseRemovalExpected,
+    Unknown,
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn pnp_node_removability_from_capabilities(capabilities: Option<u32>) -> PnpNodeRemovability {
+    match capabilities {
+        Some(flags) if flags & 0x0000_0004 != 0 => PnpNodeRemovability::RemovableFromParent,
+        Some(_) => PnpNodeRemovability::NotMarkedRemovableFromParent,
+        None => PnpNodeRemovability::Unknown,
+    }
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn device_removal_policy_from_value(value: Option<u32>) -> DeviceRemovalPolicy {
+    match value {
+        Some(1) => DeviceRemovalPolicy::NoRemovalExpected,
+        Some(2) => DeviceRemovalPolicy::OrderlyRemovalExpected,
+        Some(3) => DeviceRemovalPolicy::SurpriseRemovalExpected,
+        _ => DeviceRemovalPolicy::Unknown,
+    }
 }
 
 #[derive(Clone, PartialEq, Eq)]
@@ -27,8 +58,10 @@ pub struct DiskCandidate {
     pub row: usize,
     /// Windows dost ad/aygıt açıklaması; yerel ekranda gösterilir, kaydedilmez.
     pub display_name: String,
-    /// PnP devnode yeteneğidir; çıkarılabilir disk politikası kapsamını kanıtlamaz.
-    pub removability: PnpRemovability,
+    /// PnP düğümünün üst düğümünden ayrılma işareti.
+    pub node_removability: PnpNodeRemovability,
+    /// Windows'un ayrı olarak bildirdiği aygıt çıkarma politikası.
+    pub removal_policy: DeviceRemovalPolicy,
 }
 
 #[derive(Clone, PartialEq, Eq)]
@@ -74,7 +107,8 @@ impl DeviceInventory {
                     .map(|(row, item)| DiskCandidate {
                         row,
                         display_name: item.display_name,
-                        removability: item.removability,
+                        node_removability: item.node_removability,
+                        removal_policy: item.removal_policy,
                     })
                     .collect();
 
@@ -110,7 +144,8 @@ enum EnumerationError {
 #[cfg(any(target_os = "windows", test))]
 struct ProviderCandidate {
     display_name: String,
-    removability: PnpRemovability,
+    node_removability: PnpNodeRemovability,
+    removal_policy: DeviceRemovalPolicy,
 }
 
 #[cfg(any(target_os = "windows", test))]
@@ -121,7 +156,9 @@ trait PresentDiskProvider {
 #[cfg(target_os = "windows")]
 mod windows {
     use super::{
-        DeviceInventory, EnumerationError, PnpRemovability, PresentDiskProvider, ProviderCandidate,
+        DeviceInventory, DeviceRemovalPolicy, EnumerationError, PnpNodeRemovability,
+        PresentDiskProvider, ProviderCandidate, device_removal_policy_from_value,
+        pnp_node_removability_from_capabilities,
     };
     use std::{ffi::c_void, mem::size_of, ptr};
 
@@ -129,10 +166,13 @@ mod windows {
     const SPDRP_DEVICEDESC: u32 = 0x0000_0000;
     const SPDRP_FRIENDLYNAME: u32 = 0x0000_000C;
     const SPDRP_CAPABILITIES: u32 = 0x0000_000F;
+    const SPDRP_REMOVAL_POLICY: u32 = 0x0000_001F;
     const REG_SZ: u32 = 1;
     const REG_EXPAND_SZ: u32 = 2;
     const REG_DWORD: u32 = 4;
-    const CM_DEVCAP_REMOVABLE: u32 = 0x0000_0004;
+    const CM_REMOVAL_POLICY_EXPECT_NO_REMOVAL: u32 = 1;
+    const CM_REMOVAL_POLICY_EXPECT_ORDERLY_REMOVAL: u32 = 2;
+    const CM_REMOVAL_POLICY_EXPECT_SURPRISE_REMOVAL: u32 = 3;
     const ERROR_NO_MORE_ITEMS: u32 = 259;
     const MAX_PRESENT_DISK_DEVICES: u32 = 256;
 
@@ -248,9 +288,10 @@ mod windows {
         (!value.is_empty()).then_some(value)
     }
 
-    fn read_capabilities(
+    fn read_dword_property(
         device_info_set: DeviceInfoSet,
         device_info_data: &mut SpDevInfoData,
+        property: u32,
     ) -> Option<u32> {
         let mut buffer = [0u8; size_of::<u32>()];
         let mut data_type = 0u32;
@@ -260,7 +301,7 @@ mod windows {
             SetupDiGetDeviceRegistryPropertyW(
                 device_info_set,
                 device_info_data,
-                SPDRP_CAPABILITIES,
+                property,
                 &mut data_type,
                 buffer.as_mut_ptr(),
                 buffer.len() as u32,
@@ -305,16 +346,19 @@ mod windows {
                     })
                     .unwrap_or_else(|| "Disk aygıtı (adı alınamadı)".to_owned());
 
-            let removability = match read_capabilities(device_info_set, &mut device_info_data) {
-                Some(capabilities) if capabilities & CM_DEVCAP_REMOVABLE != 0 => {
-                    PnpRemovability::ReportedRemovable
-                }
-                _ => PnpRemovability::NotConfirmed,
-            };
+            let node_capabilities =
+                read_dword_property(device_info_set, &mut device_info_data, SPDRP_CAPABILITIES);
+            let node_removability =
+                pnp_node_removability_from_capabilities(node_capabilities);
+
+            let removal_policy_value =
+                read_dword_property(device_info_set, &mut device_info_data, SPDRP_REMOVAL_POLICY);
+            let removal_policy = device_removal_policy_from_value(removal_policy_value);
 
             candidates.push(ProviderCandidate {
                 display_name,
-                removability,
+                node_removability,
+                removal_policy,
             });
         }
 
@@ -370,7 +414,8 @@ mod tests {
                     .iter()
                     .map(|item| ProviderCandidate {
                         display_name: item.display_name.clone(),
-                        removability: item.removability,
+                        node_removability: item.node_removability,
+                        removal_policy: item.removal_policy,
                     })
                     .collect()),
                 Err(error) => Err(*error),
@@ -378,11 +423,56 @@ mod tests {
         }
     }
 
-    fn candidate(name: &str, removability: PnpRemovability) -> ProviderCandidate {
+    fn candidate(
+        name: &str,
+        node_removability: PnpNodeRemovability,
+        removal_policy: DeviceRemovalPolicy,
+    ) -> ProviderCandidate {
         ProviderCandidate {
             display_name: name.to_owned(),
-            removability,
+            node_removability,
+            removal_policy,
         }
+    }
+
+    #[test]
+    fn pnp_node_removability_is_not_conflated_with_media_removability() {
+        assert_eq!(
+            pnp_node_removability_from_capabilities(Some(0x0000_0004)),
+            PnpNodeRemovability::RemovableFromParent
+        );
+        assert_eq!(
+            pnp_node_removability_from_capabilities(Some(0)),
+            PnpNodeRemovability::NotMarkedRemovableFromParent
+        );
+        assert_eq!(
+            pnp_node_removability_from_capabilities(None),
+            PnpNodeRemovability::Unknown
+        );
+    }
+
+    #[test]
+    fn windows_removal_policy_values_are_mapped_independently() {
+        assert_eq!(
+            device_removal_policy_from_value(Some(CM_REMOVAL_POLICY_EXPECT_NO_REMOVAL)),
+            DeviceRemovalPolicy::NoRemovalExpected
+        );
+        assert_eq!(
+            device_removal_policy_from_value(Some(CM_REMOVAL_POLICY_EXPECT_ORDERLY_REMOVAL)),
+            DeviceRemovalPolicy::OrderlyRemovalExpected
+        );
+        assert_eq!(
+            device_removal_policy_from_value(Some(CM_REMOVAL_POLICY_EXPECT_SURPRISE_REMOVAL)),
+            DeviceRemovalPolicy::SurpriseRemovalExpected
+        );
+        assert_eq!(
+            device_removal_policy_from_value(Some(99)),
+            DeviceRemovalPolicy::Unknown
+        );
+        assert_eq!(
+            device_removal_policy_from_value(None),
+            DeviceRemovalPolicy::Unknown
+        );
     }
 
     #[test]
@@ -404,11 +494,19 @@ mod tests {
     }
 
     #[test]
-    fn candidates_keep_temporary_rows_and_display_names() {
+    fn candidates_keep_temporary_rows_and_independent_pnp_signals() {
         let provider = FakeProvider {
             result: Ok(vec![
-                candidate("USB bellek", PnpRemovability::ReportedRemovable),
-                candidate("USB disk", PnpRemovability::NotConfirmed),
+                candidate(
+                    "USB bellek",
+                    PnpNodeRemovability::NotMarkedRemovableFromParent,
+                    DeviceRemovalPolicy::SurpriseRemovalExpected,
+                ),
+                candidate(
+                    "SD kart",
+                    PnpNodeRemovability::RemovableFromParent,
+                    DeviceRemovalPolicy::OrderlyRemovalExpected,
+                ),
             ]),
         };
         let inventory = DeviceInventory::from_provider(&provider);
@@ -418,12 +516,20 @@ mod tests {
         assert_eq!(inventory.candidates[0].row, 0);
         assert_eq!(inventory.candidates[0].display_name, "USB bellek");
         assert_eq!(
-            inventory.candidates[0].removability,
-            PnpRemovability::ReportedRemovable
+            inventory.candidates[0].node_removability,
+            PnpNodeRemovability::NotMarkedRemovableFromParent
         );
         assert_eq!(
-            inventory.candidates[1].removability,
-            PnpRemovability::NotConfirmed
+            inventory.candidates[0].removal_policy,
+            DeviceRemovalPolicy::SurpriseRemovalExpected
+        );
+        assert_eq!(
+            inventory.candidates[1].node_removability,
+            PnpNodeRemovability::RemovableFromParent
+        );
+        assert_eq!(
+            inventory.candidates[1].removal_policy,
+            DeviceRemovalPolicy::OrderlyRemovalExpected
         );
     }
 
@@ -445,11 +551,6 @@ mod tests {
         let inventory = DeviceInventory::discover_present_disks();
         assert_ne!(inventory.state, InventoryState::Unknown);
         assert_ne!(inventory.state, InventoryState::NotScanned);
-        assert!(
-            inventory
-                .candidates
-                .iter()
-                .all(|candidate| candidate.row < 256)
-        );
+        assert!(inventory.candidates.iter().all(|candidate| candidate.row < 256));
     }
 }
