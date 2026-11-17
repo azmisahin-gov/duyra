@@ -185,6 +185,7 @@ xdotool mousemove --sync --window "$window_id" 800 680
 capture "inceleme-akisi-06-ikinci-kayit-acik.png"
 
 difference="$(compare -metric AE "$artifact_dir/inceleme-akisi-05-ilk-kayit-acik.png" "$artifact_dir/inceleme-akisi-06-ikinci-kayit-acik.png" null: 2>&1 || true)"
+difference="${difference%% *}"
 if [[ ! "$difference" =~ ^[0-9]+$ ]] || (( difference == 0 )); then
   fail "İki farklı kayıt seçildiğinde açık inceleme ekranı değişmedi."
 fi
