@@ -282,6 +282,53 @@ Linux için:
 Her hedef ayrı kabul ölçütleriyle test edilir. Delil kaynağının koruma durumu doğrulanmadan gerçek delil dosyası açılmaz.
 
 
+### 13.5. Kaynak aygıtını tanımlama ve salt okunur durumu — tasarım sınırları
+
+Bu, Issue #13'teki tek seferlik izole VM kabul testi tamamlandıktan sonra başlayacak ana ürün hedefidir. Bu bölüm tasarım sınırlarını kaydeder; gerçek aygıt keşfi, disk/volume açma veya veri okuma kodu eklemez.
+
+**İlk aşama — yalnızca mevcut aygıt adaylarını listeleme**
+
+- Windows'ta mevcut PnP aygıt arayüzleri, Microsoft'un Configuration Manager veya SetupAPI arayüzleriyle listelenmelidir. Adaylar için yalnızca sistemde şu anda mevcut olan aygıtlar alınır: `CM_Get_Device_Interface_List` ile `CM_GET_DEVICE_INTERFACE_LIST_PRESENT` veya `SetupDiGetClassDevs` ile `DIGCF_PRESENT | DIGCF_DEVICEINTERFACE`, ardından `SetupDiEnumDeviceInterfaces`.
+- Aygıt özellikleri gerekiyorsa `CM_Get_Device_Interface_Property`, `SetupDiGetDeviceInterfaceProperty` veya `SetupDiGetDeviceProperty` gibi belgelenmiş PnP API'leri kullanılmalıdır. Aygıt keşfi için Registry anahtarları doğrudan taranmaz.
+- Bu ilk aşamada fiziksel disk veya volume için `CreateFile` çağrısı yapılmaz; `DeviceIoControl` çalıştırılmaz; bölüm/volume bağlama, ayırma veya otomatik bağlama ayarı değiştirilmez; sektör, dosya sistemi veya dosya içeriği okunmaz/yazılmaz.
+- Sistem tarafından döndürülen her aygıt otomatik seçilmez. Birden fazla benzer aygıt varsa uygulama seçim yapmaz; bilirkişi adayın doğru kaynak olduğunu ayrıca onaylamadan ilerlenmez.
+- Seri numarası, PnP instance ID, volume kimliği, sürücü harfi ve tam aygıt yolu tanılama kayıtlarına yazılmaz. Gerekli geçici tanımlayıcıların arayüzde gösterilip gösterilmeyeceği ayrıca kararlaştırılır.
+- Windows'un aygıtı Removable/F​​ixed veya başka sınıfta sunması belirsizse sınıf tahmin edilmez; sonuç Bilinmiyor kalır.
+
+**İkinci aşama — yazılabilirlik ve bağlama durumunu ayrı gözlemleme**
+
+- Windows'ta `IOCTL_DISK_IS_WRITABLE`, Microsoft belgelerinde disk yazılabilirliğini belirleyen bir `DeviceIoControl` isteği olarak tanımlanır. Bu sorgu bir aygıt tanıtıcısı gerektirdiğinden ilk PnP listeleme aşamasına eklenmez; gerçek aygıta erişim sınırı olarak ayrı değerlendirilir.
+- Sorgunun hata vermesi otomatik olarak salt okunur anlamına gelmez. Yalnızca açıkça yazma korumasını bildiren sonuç salt okunur gözlemine eşlenebilir; erişim reddi, desteklenmeyen istek, aygıt hatası ve diğer tüm hatalar Bilinmiyor/Doğrulanamadı kalır.
+- Linux'ta `blockdev --getro` / `BLKROGET` çekirdeğin blok aygıtı salt okunur bayrağını bildirir. Bu, donanımsal yazma engelleyici veya bütün yazma yolları için garanti değildir. Blok aygıtı bayrağı, dosya sisteminin mevcut bağlama seçeneklerinden ayrı raporlanmalıdır.
+- İlk uygulama hedefinde `blockdev --setro`, `blockdev --setrw`, `BLKROSET`, mount/remount/unmount veya otomatik bağlama ayarı değişikliği yapılmaz.
+- Önceden yazılabilir bağlanmış dosya sistemi, blok aygıtı bayrağından farklı bir durum gösterebilir. Bağlama durumu güvenilir ve salt okunur biçimde belirlenemiyorsa dosya içeriği açılmaz.
+- Windows ve Linux için gözlenen durumlar tek bir “Koruma doğrulandı” sonucuna indirgenmez. Aygıt sınıfı, blok katmanı bayrağı, dosya sistemi bağlama durumu ve varsa politika sonucu ayrı alanlardır.
+
+**Durum modelinin asgari ilkeleri**
+
+- Aygıt keşfi: Desteklenmiyor / Aday yok / Adaylar bulundu / Bilinmiyor.
+- Salt okunur gözlem: Salt okunur bildirildi / Yazılabilir bildirildi / Desteklenmiyor / Bilinmiyor.
+- Bir sorgunun desteklenmemesi veya hata vermesi hiçbir zaman salt okunur başarı sayılmaz.
+- Aygıtın kimliği veya koruma durumu belirsizse akış kapalı kalır; kullanıcıdan farklı aygıtları denemesi istenmez.
+- Bir sorgunun “salt okunur” demesi, medyanın donanımsal korumalı, adli imaj alınmış veya değiştirilemez olduğunu tek başına kanıtlamaz.
+
+**Test ve kabul kapısı**
+
+1. Issue #13'ün kullanıcı kabul testi tamamlanmadan gerçek kaynak aygıtına yönelik yeni uygulama kodu başlamaz.
+2. İlk kod hedefi platform API'sinden ayrılmış sahte aygıt sağlayıcısı ve durum eşleme testleridir.
+3. CI yalnızca sahte aygıtlarla çalışır; gerçek disk, USB, Registry veya mount işlemi yapmaz.
+4. Windows ve Linux sağlayıcıları ayrı, sınırlı arayüzlerle geliştirilir. Herhangi bir aygıt tanıtıcısı açılması veya DeviceIoControl/BLKROGET sorgusu ayrı teknik inceleme ve izole VM kabul testi gerektirir.
+5. Kullanıcı kabulü yalnızca snapshot alınmış izole test ortamı ve boş/atılabilir test medyasıyla yapılır. Gerçek delil medyası hiçbir zaman test aygıtı değildir.
+6. Kaynak aygıt kimliği, sınıfı ve koruma durumu doğrulanmadan kaynak dosyası listelenmez veya açılmaz.
+
+Teknik kaynaklar:
+
+- Microsoft — [Enumerating installed device interfaces](https://learn.microsoft.com/en-us/windows-hardware/drivers/install/enumerating-installed-device-interface-classes)
+- Microsoft — [Accessing device properties](https://learn.microsoft.com/en-us/windows-hardware/drivers/install/accessing-device-properties)
+- Microsoft — [IOCTL_DISK_IS_WRITABLE](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-ioctl_disk_is_writable)
+- Linux man-pages — [blockdev(8)](https://man7.org/linux/man-pages/man8/blockdev.8.html)
+- Linux kernel — [BLKROGET / BLKROSET ioctl definitions](https://github.com/torvalds/linux/blob/master/tools/include/uapi/linux/fs.h)
+
 ## 14. İlk inceleme kaydı — v0.1.10
 
 **Kod hedefi ve gerçek kullanıcı kabul testi tamamlandı.**
