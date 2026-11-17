@@ -513,9 +513,7 @@ fn draw_status_bar(ui: &mut egui::Ui, update_status: &SharedUpdateStatus) {
                             "Yeni sürüm bulundu: {}",
                             snapshot.target_version.as_deref().unwrap_or("Yeni sürüm")
                         ),
-                        "kurulum" => {
-                            "Onaylandı: indiriliyor, doğrulanıyor ve kuruluyor".to_owned()
-                        }
+                        "kurulum" => "Onaylandı: indiriliyor, doğrulanıyor ve kuruluyor".to_owned(),
                         "ertelendi" => format!(
                             "{} güncellemesi ertelendi",
                             snapshot.target_version.as_deref().unwrap_or("Yeni sürüm")

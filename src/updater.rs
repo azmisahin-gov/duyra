@@ -91,8 +91,7 @@ fn update_check_loop(status: SharedUpdateStatus) {
             match guard.should_check() {
                 Ok(true) => {}
                 Ok(false) => {
-                    let delay = remaining_check_delay(&stamp_path)
-                        .unwrap_or(UPDATE_CHECK_INTERVAL);
+                    let delay = remaining_check_delay(&stamp_path).unwrap_or(UPDATE_CHECK_INTERVAL);
                     if !delay.is_zero() {
                         if !preserve_current_update_notice(&status) {
                             set_status(
@@ -206,9 +205,8 @@ fn check_for_update(status: &SharedUpdateStatus) -> self_update::Result<()> {
             let target_version = release.version().to_owned();
             if let Ok(mut current) = status.lock() {
                 current.stage = "güncelleme_bulundu".to_owned();
-                current.message = format!(
-                    "Yeni sürüm {target_version} bulundu. Kurmak için onayınızı bekliyor."
-                );
+                current.message =
+                    format!("Yeni sürüm {target_version} bulundu. Kurmak için onayınızı bekliyor.");
                 current.target_version = Some(target_version.clone());
                 current.update_available = true;
                 current.error = None;
@@ -341,9 +339,7 @@ fn apply_approved_update(status: SharedUpdateStatus) {
             set_status(
                 &status,
                 "güncel",
-                &format!(
-                    "Güncelleme tamamlandı; kurulu sürüm değişmedi: {installed_version}."
-                ),
+                &format!("Güncelleme tamamlandı; kurulu sürüm değişmedi: {installed_version}."),
                 None,
             );
         }
@@ -419,10 +415,7 @@ fn remaining_check_delay(stamp_path: &Path) -> Option<Duration> {
         .trim()
         .parse::<u64>()
         .ok()?;
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .ok()?
-        .as_secs();
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).ok()?.as_secs();
 
     Some(remaining_check_delay_from_timestamps(last_check, now))
 }
@@ -542,7 +535,11 @@ pub fn support_summary(snapshot: &UpdateSnapshot) -> String {
         std::env::consts::ARCH,
         snapshot.stage,
         snapshot.target_version.as_deref().unwrap_or("Belirlenmedi"),
-        if snapshot.update_available { "Evet" } else { "Hayır" },
+        if snapshot.update_available {
+            "Evet"
+        } else {
+            "Hayır"
+        },
         error,
     )
 }
