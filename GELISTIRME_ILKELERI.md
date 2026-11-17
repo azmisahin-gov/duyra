@@ -457,9 +457,13 @@ DUYRA'nın ilerideki aç/kapat işlevi şu kuralları sağlamadan uygulanmayacak
 - Gerçek cihaz kabulü yalnızca ayrılmış, boş ve yeniden biçimlendirilebilir deneme USB'si/microSD ile yapılır. Gerçek delil aygıtına yazma denemesi yapılmaz.
 - Yönetilen politika, geri alma, sistem kapsamı veya aygıtın gerçek yazma engeli güvenilir biçimde doğrulanamıyorsa DUYRA koruma doğrulandı durumuna geçmez ve delil okuma akışını açmaz.
 
-### 18.5. Sıradaki tek ürün hedefi
+### 18.5. Aşamalı uygulama sırası
 
-Windows için **kullanıcı onaylı, yönetim kaynağını koruyan ve geri alınabilir politika aç/kapat tasarımını** uygulamaya hazırlamak. İlk uygulama PR'ı; sahiplik/yönetim tespiti, durum yedekleme, değişiklik çakışması ve geri alma mantığını ayrı test edilebilir birimler hâline getirmeden HKLM yazma işlemini ürün akışına eklememelidir. Sonraki ayrı kabul hedefi, izole Windows VM ve ayrılmış deneme USB/microSD üzerinde gerçek davranışı doğrulamaktır.
+1. **Salt okunur yönetim kaynağı denetimi:** Önce RSoP/Grup İlkesi, MDM kayıt işaretleri, hedef Storage CSP kaydı ve etki alanı üyeliği incelenir. Herhangi bir yönetim sinyali varsa sonuç “Yönetilen”; sorgulardan biri başarısızsa “Bilinmiyor” olur. Her iki durumda da DUYRA politika değiştirmez.
+2. **Değişiklik ve geri alma motoru:** Yalnızca ilk denetim tüm sinyalleri açıkça olumsuz döndürdüğünde, ayrıca kullanıcı onayı alındığında değerlendirilebilir. Önceki registry değerinin/türünün yedeği, DUYRA'nın yazdığı değer ve sonradan dışarıdan değişiklik kontrolü ayrı test edilebilir birimler olmalıdır. Bu aşama tamamlanmadan HKLM yazma işlemi ürün akışına eklenmez.
+3. **Gerçek aygıt doğrulaması:** İzole Windows VM ve ayrılmış deneme USB/microSD üzerinde, host ilkesi ile konuk işletim sistemi ve Sandbox klasör eşlemeleri birbirinden ayrı sınanır.
+
+RSoP sorgusu `root\\RSOP\\Computer` içindeki `RSOP_RegistryPolicySetting` sınıfını kullanır; yalnızca tam ve başarılı bir sonuç “uygulandı/yok” olarak kabul edilir. Sorgu erişilemez veya zaman aşımına uğrarsa “Bilinmiyor” döner. MDM kayıt anahtarının varlığı yalnızca yönetim işaretidir; tek başına etkin Intune politikasının kanıtı değildir. Bu nedenle bu denetim bir kaynak ön değerlendirmesidir; yönetim kaynağının kesin olarak çözüldüğünü veya değişiklik izni verildiğini iddia etmez.
 
 Kaynaklar:
 - Microsoft Storage Policy CSP: https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-storage
