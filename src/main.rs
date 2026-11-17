@@ -23,6 +23,7 @@ fn main() -> eframe::Result {
             .with_icon(icon::window_icon())
             .with_inner_size([1180.0, 780.0])
             .with_min_inner_size([920.0, 640.0]),
+        renderer: eframe::Renderer::Wgpu,
         ..Default::default()
     };
 
@@ -45,6 +46,9 @@ fn main() -> eframe::Result {
                     && !renderer.trim().is_empty()
                 {
                     graphics_info = Some((renderer, vendor));
+                } else if let Some(wgpu) = frame.wgpu_render_state() {
+                    let adapter = wgpu.adapter.get_info();
+                    graphics_info = Some((adapter.name, adapter.vendor.to_string()));
                 }
             }
         }
