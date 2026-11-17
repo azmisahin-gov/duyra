@@ -237,8 +237,10 @@ impl PolicyAuthorityCheck {
     }
 
     pub fn assessment(&self) -> PolicyChangeAssessment {
+        // An Enrollments registry key can remain after MDM unenrollment.
+        // Treat it as an ambiguous historical signal, not proof of active management.
+        // It still prevents a reviewable result below, so policy changes remain blocked.
         if self.group_policy_applied == Some(true)
-            || self.mdm_enrollment_detected == Some(true)
             || self.mdm_policy_present == Some(true)
             || self.domain_joined == Some(true)
         {
@@ -1064,16 +1066,20 @@ mod policy_authority_tests {
         assert_eq!(check.assessment(), PolicyChangeAssessment::Managed);
 
         let mut check = reviewable_check();
-        check.mdm_enrollment_detected = Some(true);
-        assert_eq!(check.assessment(), PolicyChangeAssessment::Managed);
-
-        let mut check = reviewable_check();
         check.mdm_policy_present = Some(true);
         assert_eq!(check.assessment(), PolicyChangeAssessment::Managed);
 
         let mut check = reviewable_check();
         check.domain_joined = Some(true);
         assert_eq!(check.assessment(), PolicyChangeAssessment::Managed);
+    }
+
+    #[test]
+    fn enrollment_marker_alone_is_ambiguous_and_never_reviewable() {
+        let mut check = reviewable_check();
+        check.mdm_enrollment_detected = Some(true);
+
+        assert_eq!(check.assessment(), PolicyChangeAssessment::Unknown);
     }
 
     #[test]
