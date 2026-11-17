@@ -9,7 +9,57 @@ use crate::{
 };
 
 #[cfg(target_os = "windows")]
-use crate::system::{WritePolicyStatus, WriteProtectionSupport, windows_write_protection_summary};
+use crate::system::{
+    PolicyAuthorityCheck, PolicyChangeAssessment, WritePolicyStatus, WriteProtectionSupport,
+    inspect_windows_policy_authority, windows_write_protection_summary,
+};
+
+#[cfg(target_os = "windows")]
+#[derive(Default)]
+struct PolicyAuthorityUiState {
+    result: Option<PolicyAuthorityCheck>,
+    receiver: Option<std::sync::mpsc::Receiver<PolicyAuthorityCheck>>,
+}
+
+#[cfg(target_os = "windows")]
+impl PolicyAuthorityUiState {
+    fn start(&mut self) {
+        if self.receiver.is_some() {
+            return;
+        }
+
+        let (sender, receiver) = std::sync::mpsc::channel();
+        self.receiver = Some(receiver);
+
+        let spawn_result = std::thread::Builder::new()
+            .name("duyra-politika-kaynak-denetimi".to_owned())
+            .spawn(move || {
+                let result = inspect_windows_policy_authority();
+                let _ = sender.send(result);
+            });
+
+        if spawn_result.is_err() {
+            self.receiver = None;
+            self.result = Some(PolicyAuthorityCheck::unknown());
+        }
+    }
+
+    fn poll(&mut self) {
+        let result = self.receiver.as_ref().map(|receiver| receiver.try_recv());
+
+        match result {
+            Some(Ok(check)) => {
+                self.result = Some(check);
+                self.receiver = None;
+            }
+            Some(Err(std::sync::mpsc::TryRecvError::Disconnected)) => {
+                self.result = Some(PolicyAuthorityCheck::unknown());
+                self.receiver = None;
+            }
+            Some(Err(std::sync::mpsc::TryRecvError::Empty)) | None => {}
+        }
+    }
+}
 
 const BACKGROUND: Color32 = Color32::from_rgb(15, 23, 31);
 const SIDEBAR: Color32 = Color32::from_rgb(18, 30, 40);
@@ -29,6 +79,8 @@ pub struct ExaminationUiState {
     examinations: ExaminationStore,
     selected_examination: Option<String>,
     examination_notice: Option<String>,
+    #[cfg(target_os = "windows")]
+    policy_authority: PolicyAuthorityUiState,
 }
 
 impl ExaminationUiState {
@@ -40,6 +92,8 @@ impl ExaminationUiState {
             examinations,
             selected_examination: None,
             examination_notice,
+            #[cfg(target_os = "windows")]
+            policy_authority: PolicyAuthorityUiState::default(),
         }
     }
 }
@@ -172,7 +226,18 @@ pub fn show(
                                                 examination_notice,
                                             ),
                                             WorkspaceView::Settings => {
-                                                draw_settings(content, write_protection)
+                                                #[cfg(target_os = "windows")]
+                                                {
+                                                    draw_settings(
+                                                        content,
+                                                        write_protection,
+                                                        &mut examination_ui.policy_authority,
+                                                    )
+                                                }
+                                                #[cfg(not(target_os = "windows"))]
+                                                {
+                                                    draw_settings(content, write_protection)
+                                                }
                                             }
                                             view => draw_placeholder(content, *view),
                                         }
@@ -672,7 +737,11 @@ fn draw_system_card(
         });
 }
 
-fn draw_settings(ui: &mut egui::Ui, preflight: &WriteProtectionPreflight) {
+fn draw_settings(
+    ui: &mut egui::Ui,
+    preflight: &WriteProtectionPreflight,
+    #[cfg(target_os = "windows")] policy_authority: &mut PolicyAuthorityUiState,
+) {
     egui::Frame::new()
         .fill(SURFACE)
         .stroke(Stroke::new(1.0, BORDER))
@@ -834,6 +903,116 @@ fn draw_settings(ui: &mut egui::Ui, preflight: &WriteProtectionPreflight) {
                     ui.label(
                         RichText::new(
                             "Özet yalnızca bu düğmeye bastığınızda panoya kopyalanır; dosyaya kaydedilmez veya gönderilmez.",
+                        )
+                        .size(10.0)
+                        .color(MUTED),
+                    );
+
+                    ui.add_space(18.0);
+                    ui.separator();
+                    ui.label(
+                        RichText::new("POLİTİKA YÖNETİM KAYNAĞI")
+                            .size(10.0)
+                            .strong()
+                            .color(MUTED),
+                    );
+                    policy_authority.poll();
+
+                    let checking = policy_authority.receiver.is_some();
+                    let check_button_label = if checking {
+                        "Yönetim kaynağı denetleniyor…"
+                    } else if policy_authority.result.is_some() {
+                        "Yönetim kaynağını yeniden denetle"
+                    } else {
+                        "Yönetim kaynağını denetle"
+                    };
+
+                    if ui
+                        .add_enabled(!checking, egui::Button::new(check_button_label))
+                        .clicked()
+                    {
+                        policy_authority.start();
+                    }
+
+                    if checking {
+                        ui.label(
+                            RichText::new("Windows ilke ve yönetim kayıtları salt okunur inceleniyor.")
+                                .size(10.0)
+                                .color(MUTED),
+                        );
+                    }
+
+                    if let Some(check) = &policy_authority.result {
+                        let group_policy_text = match check.group_policy_applied {
+                            Some(true) => "Uygulanan Grup İlkesi bulundu",
+                            Some(false) => "İlgili Grup İlkesi ayarı saptanmadı",
+                            None => "Grup İlkesi kaynağı belirlenemedi",
+                        };
+                        let mdm_enrollment_text = match check.mdm_enrollment_detected {
+                            Some(true) => "MDM kayıt işareti bulundu",
+                            Some(false) => "MDM kayıt işareti saptanmadı",
+                            None => "MDM kayıt durumu belirlenemedi",
+                        };
+                        let mdm_policy_text = match check.mdm_policy_present {
+                            Some(true) => "PolicyManager Storage ayarı bulundu",
+                            Some(false) => "PolicyManager Storage ayarı saptanmadı",
+                            None => "PolicyManager durumu belirlenemedi",
+                        };
+                        let domain_text = match check.domain_joined {
+                            Some(true) => "Bilgisayar etki alanına katılmış",
+                            Some(false) => "Etki alanı üyeliği saptanmadı",
+                            None => "Etki alanı üyeliği belirlenemedi",
+                        };
+                        let existing_value_text = match check.current_policy_value_present {
+                            Some(true) => "Mevcut Deny_Write değeri var; kaynağı ayrıca doğrulanmalı",
+                            Some(false) => "Mevcut Deny_Write değeri yok",
+                            None => "Mevcut Deny_Write değeri doğrulanamadı",
+                        };
+
+                        for line in [
+                            group_policy_text,
+                            mdm_enrollment_text,
+                            mdm_policy_text,
+                            domain_text,
+                            existing_value_text,
+                        ] {
+                            ui.label(RichText::new(line).size(10.0).color(MUTED));
+                        }
+
+                        let (assessment_text, assessment_color) = match check.assessment() {
+                            PolicyChangeAssessment::Managed => (
+                                "Yönetilen ortam işareti bulundu. DUYRA bu politikayı değiştirmeyecek.",
+                                WARNING,
+                            ),
+                            PolicyChangeAssessment::Reviewable => (
+                                "Bilinen yönetim kaynağı saptanmadı. Bu yalnızca ön değerlendirmedir; henüz değişiklik izni değildir.",
+                                SUCCESS,
+                            ),
+                            PolicyChangeAssessment::Unknown => (
+                                "Kaynak kesinleştirilemedi. Güvenlik gereği politika değişikliği engellenmelidir.",
+                                WARNING,
+                            ),
+                        };
+                        ui.add_space(5.0);
+                        ui.label(
+                            RichText::new(assessment_text)
+                                .size(11.0)
+                                .strong()
+                                .color(assessment_color),
+                        );
+                    } else if !checking {
+                        ui.label(
+                            RichText::new(
+                                "Denetim çalıştırılana kadar politika değişikliği uygunluğu bilinmiyor.",
+                            )
+                            .size(10.0)
+                            .color(MUTED),
+                        );
+                    }
+
+                    ui.label(
+                        RichText::new(
+                            "Bu denetim yalnızca okuma yapar. Grup İlkesi, kayıt defteri veya USB aygıtı değiştirilmez. Yönetim kaynağı belirlenemezse sonraki aç/kapat işlemi sunulmaz.",
                         )
                         .size(10.0)
                         .color(MUTED),
