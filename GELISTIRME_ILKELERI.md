@@ -98,9 +98,13 @@ Güncelleme paketlerini doğrulamak için kullanılan imzalama anahtarı, kullan
 - Kullanıcı isterse uygulama içinden günlük klasörünü açabilir veya kişisel klasör yolları ayıklanmış tanılama özetini kopyalayabilir.
 - Tam günlük dosyası paylaşılmadan önce kullanıcı tarafından incelenmelidir. Delil dosyaları, kayıt içerikleri ve hassas dosya yolları destek kaydına eklenmemelidir.
 
-- Windows yazma koruması ön kontrolü, bilgisayarın o andaki durumunu gösterir; sonuçlar varsayılan olarak inceleme kaydına veya uygulama günlüğüne yazılmaz. Bu bilgiler delil işlem geçmişi değildir ve gereksiz yere kalıcılaştırılmaz.
-- Ön kontrol sonucunu paylaşmak gerektiğinde kullanıcı açıkça isterse, yalnızca gerekli sistem durumu alanlarını içeren, kullanıcı adı/bilgisayar adı/özel dosya yolu içermeyen bir özet panoya kopyalanabilir. Kopyalama kullanıcının düğmeye basmasıyla gerçekleşir; otomatik gönderim veya otomatik günlük kaydı yapılmaz.
-- Güncelleme hataları için mevcut “Tanı özeti” işlevi ayrı bir akıştır. Bu işlev Windows yazma koruması ön kontrol sonucunun kopyalanabildiği anlamına gelmez.
+- Windows yazma koruması ve yönetim kaynağı ön kontrolleri uygulama açılışında otomatik, arka planda ve salt okunur çalışır. Sonuçlar delil inceleme kayıtlarına değil, ayrı tanılama alanına yazılır.
+- Windows tanılama raporu `%LOCALAPPDATA%\\DUYRA\\diagnostics\\latest-report.json` konumunda tutulur; sabit kodlu olay kayıtları `events.jsonl` dosyasına eklenir. Olay dosyası 256 KiB sınırında döndürülür.
+- Tanılama klasörü Ayarlar ekranından açılabilir. Kullanıcıdan PowerShell, registry çıktısı veya ekran görüntüsü ile elle bilgi taşıması beklenmez.
+- Rapor yalnızca uygulama sürümü, Windows edisyon/derleme bilgisi ve kontrol durumlarını içerir. Hesap/kullanıcı adı, cihaz/tenant kimliği, domain adı, özel dosya yolu, ham komut/registry çıktısı, delil içeriği veya USB seri/aygıt kimliği kaydedilmez.
+- Tanılama kayıtları yerel diskte kalır ve kendiliğinden ağa, GitHub'a veya geliştiriciye gönderilmez. Paylaşım gerektiğinde kullanıcı raporu kendisi inceler ve açıkça paylaşır.
+- Bu altyapı uygulama geneline yeniden kullanılabilir sabit bileşen/kontrol kodu/durum kayıtları sağlar. Serbest metin veya ham sistem çıktısı tanılama API'sine verilmez.
+- Güncelleme hataları için `DUYRA/logs/duyra.log` ayrı kalır; sistem tanılama raporunun kapsamı değildir.
 ## 9. Bitti sayma ve yayın ölçütü
 
 Bir iş ancak aşağıdakiler sağlandığında tamamdır:
@@ -470,3 +474,31 @@ Kaynaklar:
 - Microsoft Storage Policy CSP: https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-storage
 - Windows Sandbox yapılandırması: https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-configure-using-wsb-file
 - Oracle VirtualBox USB desteği: https://download.virtualbox.org/virtualbox/7.0.0_BETA3/UserManual.pdf
+
+
+## 19. Uygulama genelinde otomatik tanılama altyapısı
+
+**Ürün ilkesi:** Kullanıcı, DUYRA'nın güvenli biçimde kendi başına yapabileceği bir tanılamayı elle komut çalıştırarak veya ham çıktıyı sohbete taşıyarak yapmak zorunda bırakılmamalıdır.
+
+### Çalışma biçimi
+
+- Salt okunur ve düşük etkili başlangıç kontrolleri uygulama açılışında arka planda çalışır; arayüz bloke edilmez.
+- Her kontrol bir bileşen adı, sabit kontrol kimliği, durum ve zaman damgası üretir. Hata durumları da rapora "bilinmiyor/okunamadı" şeklinde eklenir; ham komut çıktısı saklanmaz.
+- Kullanıcıya ait gerçek veri, delil dosyası, USB içeriği veya ağ bağlantısı gerektiren kontroller otomatik başlangıç denetimine dahil edilmez.
+- Daha yüksek riskli testler (yönetici yükseltmesi, policy/registry yazma, sürücü/aygıt açma, yazma/geri alma) otomatik çalıştırılmaz; yalnızca izole VM, snapshot ve ayrılmış test aygıtıyla yürütülür.
+- Denetim tamamlandığında güncel rapor ve sınırlı olay geçmişi yerel tanılama klasörüne yazılır. Rapor aynı dosya üzerinde güncellenir; olay kaydı boyut sınırında döndürülür.
+
+### Gizlilik ve bütünlük
+
+- Tanılama API'si serbest metin değil, sabit bileşen/kontrol/durum kodları alır. Böylece kullanıcı adı, UPN, tenant/device GUID, domain adı, dosya yolu, seri numarası ve ham çıktıların yanlışlıkla kaydedilmesi önlenir.
+- İlk sürüm için rapor JSON, olay günlüğü JSONL biçimindedir. Şema sürümlenir; alanların kapsamı açıkça belgelenir.
+- Dosyalar kullanıcı uygulama verisi altında tutulur; ağ veya telemetri gönderimi yoktur. Paylaşım her zaman kullanıcı eylemidir.
+- Tanılama dosyaları inceleme/delil geçmişinden ayrı kalır. Uygulama olayları ile delil işlemleri aynı günlükte birleştirilmez.
+- Yazma hatası, eksik izin veya başarısız kontrol saklanamazsa kullanıcıya açıkça bildirilir; başarılı kayıt yapılmış gibi gösterilmez.
+
+### Aşamalı kapsam
+
+1. **İlk adım:** Windows başlangıç ön kontrolü ve politika yönetim kaynağı bulgularını otomatik raporla.
+2. **Sonraki modüller:** Güncelleme doğrulaması, yerel veri deposu erişimi, uygulama bağımlılıkları, ses işleme motoru ve rapor oluşturma gibi modüller aynı sabit olay API'sine katılır.
+3. **İleri aşama:** Kullanıcı onayıyla tanılama paketini inceleme ve seçmeli dışa aktarma; otomatik upload hiçbir zaman varsayılan olmaz.
+4. Her yeni denetim için risk sınıfı, saklanan alanlar, rapor şeması ve kabul testi belgelenmeden otomatik başlangıç kontrolüne eklenmez.
