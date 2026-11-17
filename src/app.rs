@@ -951,7 +951,9 @@ fn draw_settings(
                             None => "Grup İlkesi kaynağı belirlenemedi",
                         };
                         let mdm_enrollment_text = match check.mdm_enrollment_detected {
-                            Some(true) => "MDM kayıt işareti bulundu",
+                            Some(true) => {
+                                "MDM kayıt işareti bulundu; eski/kalıntı kayıt olasılığı nedeniyle etkin yönetim doğrulanamadı"
+                            }
                             Some(false) => "MDM kayıt işareti saptanmadı",
                             None => "MDM kayıt durumu belirlenemedi",
                         };
