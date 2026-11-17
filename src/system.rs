@@ -517,15 +517,18 @@ mod windows_write_protection {
                 &mut returned_length,
             )
         };
-        unsafe {
-            close_handle(token);
-        }
 
         if success == 0 {
             let code = unsafe { get_last_error() } as i32;
+            unsafe {
+                close_handle(token);
+            }
             return Err(win32_error("Uygulama yükseltilmiş yetki sorgusu", code));
         }
 
+        unsafe {
+            close_handle(token);
+        }
         Ok(elevation.token_is_elevated != 0)
     }
 
@@ -661,5 +664,25 @@ mod write_protection_tests {
             policy_status_from_value(Some(7)),
             WritePolicyStatus::UnexpectedValue(7)
         );
+    }
+}
+
+#[cfg(all(test, target_os = "windows"))]
+mod windows_preflight_tests {
+    use super::write_protection_preflight;
+
+    #[test]
+    fn windows_preflight_reads_system_information_without_changing_it() {
+        let first = write_protection_preflight();
+        let second = write_protection_preflight();
+
+        assert_eq!(first, second);
+        let super::WriteProtectionPreflight::Windows(status) = first else {
+            panic!("Windows derlemesinde Windows ön kontrolü döndürülmelidir.");
+        };
+
+        assert!(status.product_name.as_deref().is_some_and(|value| !value.is_empty()));
+        assert!(status.edition_id.as_deref().is_some_and(|value| !value.is_empty()));
+        assert!(status.build_number.is_some());
     }
 }
