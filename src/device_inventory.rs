@@ -58,6 +58,7 @@ impl DeviceInventory {
         }
     }
 
+    #[cfg(any(target_os = "windows", test))]
     fn from_provider(provider: &impl PresentDiskProvider) -> Self {
         match provider.enumerate_present() {
             Ok(items) if items.is_empty() => Self {
@@ -102,18 +103,20 @@ impl DeviceInventory {
     }
 }
 
+#[cfg(any(target_os = "windows", test))]
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum EnumerationError {
     Unsupported,
-    Unavailable,
     Failed,
 }
 
+#[cfg(any(target_os = "windows", test))]
 struct ProviderCandidate {
     display_name: String,
     removability: PnpRemovability,
 }
 
+#[cfg(any(target_os = "windows", test))]
 trait PresentDiskProvider {
     fn enumerate_present(&self) -> Result<Vec<ProviderCandidate>, EnumerationError>;
 }
@@ -342,7 +345,7 @@ mod windows {
             };
 
             if device_info_set.is_null() || device_info_set == (-1isize as DeviceInfoSet) {
-                return Err(EnumerationError::Unavailable);
+                return Err(EnumerationError::Failed);
             }
 
             let result = enumerate_device_set(device_info_set);
