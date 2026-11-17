@@ -1104,7 +1104,7 @@ fn draw_settings(
                     );
                     ui.label(
                         RichText::new(
-                            "HKLM Deny_Write değerinin 1 olması yalnızca bilgisayar düzeyindeki politika kaydının etkin göründüğünü belirtir; bağlı bir aygıta yazmanın fiilen engellendiğini kanıtlamaz.",
+                            "HKLM Deny_Write değerinin 1 olması yalnızca bilgisayar düzeyindeki politika kaydının etkin göründüğünü belirtir; bağlı bir aygıta yazmanın fiilen engellendiğini kanıtlamaz. İlke yalnızca Windows'un ilgili çıkarılabilir disk sınıfına yöneliktir; sabit disk olarak sınıflandırılan USB-SSD'lerin, ağ paylaşımlarının, host klasör eşlemelerinin veya sanal disk dosyalarının kapsandığı varsayılmaz.",
                         )
                         .size(10.0)
                         .color(MUTED),
@@ -1169,7 +1169,7 @@ fn draw_settings(
                     ui.add_space(8.0);
                     ui.label(
                         RichText::new(
-                            "Bu denetim yalnızca okuma yapar. Grup İlkesi, kayıt defteri veya USB aygıtı değiştirilmez. Yönetim kaynağı belirlenemezse sonraki aç/kapat işlemi sunulmaz.",
+                            "Bu denetim yalnızca okuma yapar. DUYRA politika açma/kapatma, Registry yazımı veya geri alma sunmaz; yetkili Windows yönetim aracıyla uygulanmış politikayı salt okunur raporlar. Gerçek aygıt testi yalnızca snapshot alınmış izole VM ve boş test medyasıyla yapılmalıdır.",
                         )
                         .size(10.0)
                         .color(MUTED),
