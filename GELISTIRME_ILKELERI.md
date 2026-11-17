@@ -270,15 +270,16 @@ Linux için:
 
 ### 13.4. Sıralı geliştirme hedefleri
 
-1. **Tamamlandı — v0.1.10:** Yeni İnceleme kaydı oluşturma, yerel kalıcı saklama, uygulama yeniden açıldığında listeleme ve kaydı tekrar açma kodlandı; PR #1 ana dala birleştirildi ve Release yayımlandı. Bu aşamada delil aygıtına erişilmez. Gerçek Windows kullanıcı kabul testi henüz beklemededir.
-2. **Sıradaki hedef:** Windows'ta yazma koruması için destek/edisyon/yetki ön kontrolü ve kullanıcıyı doğru koruma yöntemine yönlendirme. Uygulamanın sistem genelindeki koruma ilkesini habersiz değiştirmesi yoktur.
-3. **Sonraki hedef:** Koruma doğrulandıktan sonra bağlı aygıtı güvenilir biçimde tanımlama ve salt okunur durumunu denetleme.
-4. **Sonraki hedef:** Kaynak dosya envanteri ve SHA-256 hash kaydı; kaynak ile çalışma çıktılarının ayrılması.
-5. **Sonraki hedef:** Ses dosyasını değiştirmeden dinleme ve zaman damgalı inceleme işaretleri.
-6. **Sonraki hedef:** Hassas not, düzeltme ve rapor taslakları için şifreleme, yedekleme ve kurtarma politikasını belirleyip uygulama.
-7. **Sonraki hedefler:** Deşifre, analiz ve bilirkişi raporu iş akışları.
+1. **Tamamlandı — v0.1.10:** Yeni İnceleme kaydı oluşturma, yerel kalıcı saklama, uygulama yeniden açıldığında listeleme ve kaydı tekrar açma kodlandı; PR #1 ana dala birleştirildi ve Release yayımlandı. Gerçek Windows kullanıcı kabul testi de başarılıdır. Bu aşamada delil aygıtına erişilmez.
+2. **Tamamlandı — v0.1.11–v0.1.15:** Windows sürüm/edisyon/yetki, bilinen yönetim sinyalleri ve ilgili politika kaydı salt okunur denetlenir. Tanılama yerel ve sınırlı tutulur. Politika kaydı ile gerçek aygıt yazma davranışı arayüzde ayrı gösterilir. DUYRA Registry/Grup İlkesi değiştirmez, MDM'ye müdahale etmez ve USB aygıtını açmaz.
+3. **Bekleyen tek kabul kapısı — Issue #13:** Ayrılmış Windows 11 Pro konuk VM ve boş test USB belleğiyle ilgili çıkarılabilir disk ilkesinin bir defalık davranış testi. Test gerçek delil medyası veya kişisel host üzerinde yapılmaz. Bu test, yalnızca denenen VM/USB kombinasyonunu doğrular; donanımsal yazma engelleyici veya tüm depolama yolları için genel garanti değildir. Test tamamlandıktan sonra VirtualBox kullanımı kapanır.
+4. **Sıradaki ana ürün hedefi:** Koruma sınırları doğrulanmış bir kaynak aygıtı salt okunur tanımlama ve durumunu değerlendirme. Aygıt sınıfı, doğru kaynak olduğuna ilişkin kullanıcı onayı ve işletim sisteminin gerçekten sunduğu salt okunur durumu belirlenmeden dosya içeriği açılmaz. Belirsiz veya desteklenmeyen durumda akış durur.
+5. **Sonraki hedef:** Kaynak dosya envanteri ve SHA-256 hash kaydı; kaynak ile çalışma çıktılarının ayrılması. Orijinal delil dosyasına yazma yapılmaz.
+6. **Sonraki hedef:** Ses dosyasını kaynağı değiştirmeden dinleme ve zaman damgalı inceleme işaretleri.
+7. **Sonraki hedef:** Hassas not, düzeltme ve rapor taslakları için şifreleme, yedekleme ve kurtarma politikasını belirleyip uygulama.
+8. **Sonraki hedefler:** Deşifre, analiz ve bilirkişi raporu iş akışları.
 
-Her hedef ayrı kabul ölçütleriyle test edilir. Delil koruması doğrulanmadan gerçek delil medyası üzerinde okuma/inceleme özelliği açılmaz.
+Her hedef ayrı kabul ölçütleriyle test edilir. Delil kaynağının koruma durumu doğrulanmadan gerçek delil dosyası açılmaz.
 
 
 ## 14. İlk inceleme kaydı — v0.1.10
@@ -395,13 +396,15 @@ Bir sonraki ayrı hedef, kullanıcı onaylı ve etkisi açıklanmış bir Window
 
 ## 17. Depo, dal, PR ve commit yönetimi
 
+**Dil tutarlılığı kararı — 17 Kasım 2026:** DUYRA'nın ürün belgeleri ve geliştirici iletişimi Türkçedir. Git geçmişinde görülen İngilizce conventional-commit önekleri ve İngilizce alt commit gövdeleri bu kuralla uyumlu değildir. Bundan sonraki commit ve PR metinleri Türkçe yazılır; geçmiş commitler yeniden yazılarak değiştirilmez.
+
 **Amaç:** Git geçmişini, CI sonuçlarını ve açık işleri okunabilir tutmak; kullanıcının neyin tamamlandığını tek bakışta anlayabilmesini sağlamak.
 
 1. Her yeni hedef doğrudan güncel main dalından başlatılır. Eski veya birleştirilmiş bir özellik dalından yeni iş türetilmez.
 2. Aynı anda tek ürün hedefi ve mümkün olduğunca tek aktif çalışma dalı/PR tutulur. Bağımsız işler paralel dallara bölünmez; sıraya alınır.
 3. Bir hedef için tek, kapsamı açık PR açılır. İlişkili kod, test ve zorunlu belge değişiklikleri aynı PR'da gruplanır. Aynı hedef için düzeltme PR'ı veya ikinci bir PR açılmaz.
 4. Commit, her küçük deneme veya CI hatası için değil, anlamlı ve gözden geçirilebilir bir değişiklik birimi oluştuğunda atılır. Biçim/Clippy/test hataları aynı çalışma dalında düzeltilir. Normal durumda bir hedefin PR'ı az sayıda, anlamlı commit içermelidir; commit sayısı kendi başına ilerleme ölçütü değildir.
-5. Commit ve PR başlıkları Türkçe, kısa ve yapılan gerçek değişikliği anlatır. PR açıklaması hedefi, kapsam dışı bırakılanları ve kabul ölçütlerini yazar.
+5. Depodaki insan tarafından yazılan Git geçmişi Türkçe tutulur: commit başlığı ve gövdesi, PR başlığı/açıklaması, squash birleştirme mesajı ve commit içi açıklamalar Türkçe olmalıdır. İngilizce `feat:`, `fix:`, `docs:`, `chore:` gibi önekler kullanılmaz. Kod tanımlayıcıları, API/standart adları, kütüphane terimleri ve üçüncü taraf araçların zorunlu İngilizce metinleri özgün biçiminde kalabilir. Her mesaj kısa ve yapılan gerçek değişikliği anlatır.
 6. CI başarısızsa önce hangi adımın ve neden başarısız olduğu bulunur. Ürün hatası ile CI ortamı sorunu ayrıştırılır; düzeltme aynı PR'da yapılır ve son commit'in ilgili kontrolleri yeniden çalıştırılır. Başarısız bir koşu gizlenmez veya başarı gibi sunulmaz.
 7. PR yalnızca son değişiklikler incelendikten ve gerekli kontroller geçtikten sonra birleştirilir. Tercih edilen yöntem squash merge'dür; her hedef ana dala tek, anlaşılır birleştirme commit'i olarak girmelidir.
 8. Birleştirmeden sonra main başının beklenen commit olduğu, ana dal CI işlerinin başarılı olduğu, PR'ın kapandığı ve gereksiz dal kalmadığı doğrulanır. Birleştirilmiş çalışma dalı silinir. Depoda normal durumda yalnızca main ve o anda üzerinde çalışılan tek dal bulunur.
