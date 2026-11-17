@@ -78,8 +78,9 @@ Bu işlem sadece konuk VM'nin yerel Grup İlkesi'ni değiştirir. DUYRA bu işle
 2. VM'yi yeniden başlat ve gerekirse USB belleği yeniden bağla.
 3. Test USB'sinde yeni, zararsız bir dosya oluşturmayı dene; bu kez yazmanın tekrar mümkün olduğunu doğrula.
 4. Oluşturduğun test dosyalarını sil ve USB belleği Windows üzerinden güvenli şekilde çıkar.
-5. VM'yi kapat. Test sırasında beklenmeyen bir durum oluştuysa temiz snapshot'a dön.
-6. VirtualBox testlerini bu kabul işlemi tamamlandıktan sonra sonlandır; grafik uyumluluğu araştırmasına geri dönme.
+5. VM'yi kapat. Test sırasında beklenmeyen bir durum oluştuysa, USB güvenli biçimde ayrıldıktan sonra temiz snapshot'a dön.
+6. Snapshot yalnızca konuk VM'nin sanal sistem durumunu geri yükler; fiziksel test USB'sinde oluşturulmuş dosyaları geri almaz. USB'deki test dosyalarını ayrıca sil ve bu medyayı başka amaçla kullanmadan önce durumunu doğrula.
+7. VirtualBox testlerini bu kabul işlemi tamamlandıktan sonra sonlandır; grafik uyumluluğu araştırmasına geri dönme.
 
 ## Sonuç kaydı
 
