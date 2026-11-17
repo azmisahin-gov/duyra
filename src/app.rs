@@ -1660,11 +1660,8 @@ mod device_selection_tests {
     fn clears_selection_when_an_examination_is_opened() {
         let mut selected_row = Some(1);
 
-        let changed = clear_device_selection_if_examination_changed(
-            None,
-            Some("case-a"),
-            &mut selected_row,
-        );
+        let changed =
+            clear_device_selection_if_examination_changed(None, Some("case-a"), &mut selected_row);
 
         assert!(changed);
         assert_eq!(selected_row, None);
@@ -1674,11 +1671,8 @@ mod device_selection_tests {
     fn clears_selection_when_leaving_an_examination() {
         let mut selected_row = Some(1);
 
-        let changed = clear_device_selection_if_examination_changed(
-            Some("case-a"),
-            None,
-            &mut selected_row,
-        );
+        let changed =
+            clear_device_selection_if_examination_changed(Some("case-a"), None, &mut selected_row);
 
         assert!(changed);
         assert_eq!(selected_row, None);
