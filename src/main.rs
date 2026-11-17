@@ -7,6 +7,10 @@ mod icon;
 mod system;
 mod updater;
 
+// The write-policy transaction protocol is currently a test-only model.
+#[cfg(test)]
+mod policy_transaction;
+
 use eframe::glow::HasContext;
 
 fn main() -> eframe::Result {
