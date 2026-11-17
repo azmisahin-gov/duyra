@@ -5,6 +5,8 @@ New-Item -ItemType Directory -Path $artifactDirectory -Force | Out-Null
 
 $statusPath = Join-Path $artifactDirectory "durum.txt"
 $screenshotPath = Join-Path $artifactDirectory "duyra-ana-ekran.png"
+$stdoutPath = Join-Path $artifactDirectory "uygulama-stdout.txt"
+$stderrPath = Join-Path $artifactDirectory "uygulama-stderr.txt"
 $appPath = Join-Path $env:GITHUB_WORKSPACE "target/release/duyra.exe"
 
 $application = $null
@@ -14,6 +16,16 @@ $windowHandleValue = "0"
 $applicationSession = "Bilinmiyor"
 $runnerSession = [System.Diagnostics.Process]::GetCurrentProcess().SessionId
 $errorDetail = ""
+$graphicsAdapters = "Alınamadı"
+$processStartedAt = [DateTime]::UtcNow
+
+try {
+    $graphicsAdapters = (Get-CimInstance Win32_VideoController -ErrorAction Stop |
+        Select-Object -ExpandProperty Name) -join "; "
+}
+catch {
+    $graphicsAdapters = "Grafik aygıtı sorgulanamadı: $($_.Exception.Message)"
+}
 
 $nativeCode = @"
 using System;
@@ -49,7 +61,8 @@ try {
     Add-Type -TypeDefinition $nativeCode -Language CSharp
     Add-Type -AssemblyName System.Drawing
 
-    $application = Start-Process -FilePath $appPath -PassThru
+    $env:RUST_BACKTRACE = "1"
+    $application = Start-Process -FilePath $appPath -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
     $deadline = (Get-Date).AddSeconds(30)
     $windowHandle = [IntPtr]::Zero
 
@@ -57,7 +70,9 @@ try {
         $application.Refresh()
 
         if ($application.HasExited) {
-            throw "DUYRA pencere açılmadan sonlandı. Çıkış kodu: $($application.ExitCode)"
+            $stdout = if (Test-Path $stdoutPath) { Get-Content $stdoutPath -Raw } else { "" }
+            $stderr = if (Test-Path $stderrPath) { Get-Content $stderrPath -Raw } else { "" }
+            throw "DUYRA pencere açılmadan sonlandı. Çıkış kodu: $($application.ExitCode). STDERR: $stderr STDOUT: $stdout"
         }
 
         $windowHandle = $application.MainWindowHandle
@@ -124,6 +139,8 @@ finally {
         "DUYRA Windows CI görsel denemesi"
         "Zaman (UTC): $([DateTime]::UtcNow.ToString('o'))"
         "Runner oturum numarası: $runnerSession"
+        "Grafik bağdaştırıcıları: $graphicsAdapters"
+        "Uygulama başlatma zamanı (UTC): $($processStartedAt.ToString('o'))"
         "Uygulama oturum numarası: $applicationSession"
         "Uygulama pencere başlığı: $windowTitle"
         "Pencere tanıtıcısı: $windowHandleValue"
