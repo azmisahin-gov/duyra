@@ -177,10 +177,10 @@ capture "inceleme-akisi-04-iki-kayit.png"
 validate_records
 
 # Her iki kaydı da Aç ile seç; Açık İnceleme alanı seçimle değişmelidir.
-click_at 1100 211
+click_at 1137 193
 xdotool mousemove --sync --window "$window_id" 800 680
 capture "inceleme-akisi-05-ilk-kayit-acik.png"
-click_at 1100 252
+click_at 1137 225
 xdotool mousemove --sync --window "$window_id" 800 680
 capture "inceleme-akisi-06-ikinci-kayit-acik.png"
 
