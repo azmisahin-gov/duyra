@@ -476,6 +476,37 @@ Kaynaklar:
 - Oracle VirtualBox USB desteği: https://download.virtualbox.org/virtualbox/7.0.0_BETA3/UserManual.pdf
 
 
+### 18.6. Windows Registry koşullu yazma sınırı — 17 Kasım 2026
+
+İşlem/geri alma tasarımı sırasında Windows kayıt defteri API'lerinin dışarıdan gelen eşzamanlı değişiklikleri ezmeden koşullu güncelleme yapmaya elverişli olup olmadığı ayrıca incelendi.
+
+Microsoft'un *Writing and Deleting Registry Data* belgesi, bir Registry anahtarının yazma işlemi sırasında eşzamanlamayı sağlamak amacıyla kilitlenemeyeceğini açıkça belirtir. Aynı belge, birden fazla Registry işleminin KTM/TxR işlemi içinde yürütülebileceğini söyler; ancak bu, başka yönetim kaynağından gelen değişiklik karşısında belirli bir değeri atomik olarak “beklenen sürüm hâlâ aynıysa yaz/sil” biçiminde güncelleyen bir compare-and-set sözleşmesi olarak belgelenmemiştir.
+
+Ek gözlemler:
+
+- `RegQueryInfoKey` anahtarın ve o anahtara bağlı değer girdilerinin en son değiştirilme zamanını verir. Bu zaman damgası hangi değerin, hangi kaynak tarafından değiştirildiğini gösteren bir sahiplik belirteci değildir.
+- `RegNotifyChangeKeyValue` anahtar değişikliği için bildirim sağlar. Bildirim, kontrol ile sonraki yazma/silme arasındaki yarış penceresini atomik olarak kapatmaz.
+- `RegQueryMultipleValues` aynı anahtardaki birden fazla değeri tutarlı/atomik biçimde okuyabilir. Microsoft'un okuma belgesi, başka uygulamaların bir değeri okuma ile kullanma arasında değiştirebileceği uyarısını ayrıca yapar; atomik çoklu okuma koşullu yazma anlamına gelmez.
+- DUYRA örnekleri arasında kullanılan bir mutex, Grup İlkesi, MDM/Intune, PowerShell veya başka bir yönetim sürecinin aynı Registry alanına yazmasını engellemez.
+- TxR/KTM'nin çoklu işlemleri bir transaction içinde gruplaması, tek başına haricî yazarlar karşısında gerekli compare-and-set / compare-and-remove garantisinin mevcut olduğunu kanıtlamaz. Bu garanti resmi belgelerle ve desteklenen Windows sürümlerinde yarış testleriyle gösterilmeden TxR çözüm olarak kabul edilmeyecektir.
+
+**Mimari karar:**
+
+1. `read → timestamp/revision kontrolü → RegSetValueEx/RegDeleteValue → read-back` akışı güvenli koşullu yazma veya geri alma olarak sunulmayacaktır. Kontrol ile yazma arasındaki zaman aralığında dış kaynak değişiklik yapabilir.
+2. Registry anahtarının ACL/security descriptor değerlerini kilit amacıyla değiştirmek bu işin kapsamı dışındadır; mevcut yönetim güvenlik sınırlarını değiştiren ayrı ve daha yüksek riskli bir sistem müdahalesi olur.
+3. PR #15 ile eklenen `src/policy_transaction.rs`, yalnızca sahte sağlayıcıda atomik koşullu yazma/silme sözleşmesinin beklenen davranışını test eder. `#[cfg(test)]` altındadır; gerçek Windows Registry sağlayıcısı değildir ve CI sonucu Windows kayıt defteri atomikliğini kanıtlamaz.
+4. Bu nedenle DUYRA'ya HKLM Registry/Grup İlkesi yazımı veya otomatik geri alma eklenmeyecektir. Salt okunur yönetim kaynağı ön kontrolü korunur. Yönetici tarafından desteklenen bir Windows yönetim aracıyla uygulanmış politikanın DUYRA tarafından salt okunur doğrulanması, ayrı bir ürün seçeneği olarak değerlendirilebilir.
+5. Otomatik değişiklik ancak yönetim kaynağı ve sahipliği güvenilir biçimde belirlenebildiğinde, dış kaynak değişikliklerine karşı platformun desteklediği gerçek koşullu işlem yolu kanıtlandığında ve geri alma/çökme kurtarma senaryoları izole VM'de doğrulandığında yeniden ele alınabilir. Bu şartlar sağlanmıyorsa davranış fail-closed kalır.
+
+Kaynaklar (Microsoft Learn, 17 Kasım 2026 tarihinde incelendi):
+
+- Writing and Deleting Registry Data: https://learn.microsoft.com/en-us/windows/win32/sysinfo/writing-and-deleting-registry-data
+- Retrieving Data from the Registry: https://learn.microsoft.com/en-us/windows/win32/sysinfo/retrieving-data-from-the-registry
+- RegQueryInfoKey: https://learn.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regqueryinfokeyw
+- RegNotifyChangeKeyValue: https://learn.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regnotifychangekeyvalue
+- RegOpenKeyTransacted: https://learn.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regopenkeytransacteda
+- Kernel Transaction Manager: https://learn.microsoft.com/en-us/windows/win32/ktm/kernel-transaction-manager-portal
+
 ## 19. Uygulama genelinde otomatik tanılama altyapısı
 
 **Ürün ilkesi:** Kullanıcı, DUYRA'nın güvenli biçimde kendi başına yapabileceği bir tanılamayı elle komut çalıştırarak veya ham çıktıyı sohbete taşıyarak yapmak zorunda bırakılmamalıdır.
