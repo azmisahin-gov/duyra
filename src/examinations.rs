@@ -212,7 +212,7 @@ impl ExaminationStore {
 
     fn sort_records(&mut self) {
         self.records
-            .sort_by(|left, right| right.created_at_unix.cmp(&left.created_at_unix));
+            .sort_by_key(|record| std::cmp::Reverse(record.created_at_unix));
     }
 }
 
