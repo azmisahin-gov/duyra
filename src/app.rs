@@ -269,9 +269,10 @@ pub fn show(
                                                 selected_view,
                                                 examination_notice,
                                             ),
-                                            WorkspaceView::Evidence => {
-                                                draw_evidence(content, &mut examination_ui.device_inventory)
-                                            }
+                                            WorkspaceView::Evidence => draw_evidence(
+                                                content,
+                                                &mut examination_ui.device_inventory,
+                                            ),
                                             WorkspaceView::Settings => {
                                                 #[cfg(target_os = "windows")]
                                                 {
@@ -1252,10 +1253,7 @@ fn draw_preflight_row(ui: &mut egui::Ui, label: &str, value: &str) {
     });
 }
 
-fn draw_evidence(
-    ui: &mut egui::Ui,
-    inventory: &mut crate::device_inventory::DeviceInventory,
-) {
+fn draw_evidence(ui: &mut egui::Ui, inventory: &mut crate::device_inventory::DeviceInventory) {
     egui::Frame::new()
         .fill(SURFACE)
         .stroke(Stroke::new(1.0, BORDER))
