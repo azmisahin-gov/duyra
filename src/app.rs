@@ -108,6 +108,14 @@ impl ExaminationUiState {
         let examinations = ExaminationStore::open_default();
         let examination_notice = examinations.notice();
 
+        let (storage_status, storage_code) = examinations.diagnostic_state();
+        crate::diagnostics::record_event(
+            "local_storage",
+            "examination_store",
+            storage_status,
+            storage_code,
+        );
+
         Self {
             examinations,
             selected_examination: None,
