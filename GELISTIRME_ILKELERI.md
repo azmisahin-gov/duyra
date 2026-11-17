@@ -247,17 +247,17 @@ Bu bölüm, bilirkişinin ilk kez bir inceleme başlatmasından delil kaynağın
 
 ### 13.3. Delil aygıtı yazma koruması
 
-**Ürün yolu yazılımsal yazma koruması üzerine kurulacaktır.** Donanımsal yazma engelleyici zorunlu gereksinim, ilk kurulum şartı veya bilirkişinin başlamasını engelleyen bir koşul değildir. Kurumun elinde zaten varsa ek bir güvenlik katmanı olarak kullanılabilir; DUYRA'nın temel akışı buna bağımlı olmayacaktır.
+**Ürün yolu, doğrulanabilir yazılımsal korumayı esas alır.** Donanımsal yazma engelleyici zorunlu gereksinim veya ilk kurulum şartı değildir; kurumda mevcutsa ek katman olarak kullanılabilir. Bununla birlikte DUYRA, Windows bilgisayar ilkesini kendi başına açıp kapatmaz ve gerçek aygıt yazma engelini yalnızca politika kaydından çıkarsamaz.
 
-Yazılımsal koruma da tek başına “delilin değiştirilemezliği” veya adli imaj alma garantisi değildir. DUYRA yalnızca işletim sisteminin ve ilgili aygıtın gerçekten doğrulayabildiği korumayı raporlayacaktır.
+Yazılımsal koruma da tek başına “delilin değiştirilemezliği” veya adli imaj alma garantisi değildir. DUYRA yalnızca işletim sistemi ve ilgili aygıt için gerçekten gözlemlenebilen durumu, kapsamını ve doğrulama sınırını raporlayacaktır.
 
 Windows için araştırılan yazılımsal seçenek:
 
 - Microsoft'un **Removable Disks: Deny write access** cihaz ilkesi, Windows 10 sürüm 1809 ve sonrası için Pro, Enterprise, Education ve IoT Enterprise sürümlerinde belgelenmiştir. Kaynak: [Microsoft Storage Policy CSP](https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-storage).
 - İlke çıkarılabilir disk sınıfına yazmayı engeller; yalnızca DUYRA'nın seçtiği tek USB belleğe uygulanmış gibi sunulamaz. Diğer çıkarılabilir disklerin yazma davranışını da etkileyebileceği kullanıcıya önceden açıklanmalıdır.
 - Belgelenen destek listesinde Windows Home yer almaz. Home sürümünde bu ilkenin var olduğu veya aynı garantiyi sağladığı varsayılmayacaktır.
-- DUYRA sistem ilkesini kullanıcıdan habersiz değiştirmemelidir. İleride etkinleştirme yardımı sunulursa yönetici yetkisi, mevcut ilke, kapsam, etkilenen diğer aygıtlar ve eski ayarı geri yükleme yöntemi açıkça gösterilmelidir.
-- Koruma durumu, uygulamanın kendi ayarına bakılarak değil, işletim sistemi politikası ve ilgili blok aygıtın salt okunur durumu doğrulanarak değerlendirilmelidir.
+- DUYRA Windows sistem ilkesini değiştirmez; Registry yazımı, UAC yükseltmesi veya otomatik geri alma sunmaz. Politika gerekiyorsa yetkili Windows yönetim aracıyla sistem yöneticisi tarafından ayrıca yönetilir.
+- DUYRA, mevcut politika kaydını ve bilinen yönetim sinyallerini salt okunur raporlar. Politika kaydı ile ilgili aygıtın gerçek salt okunur davranışı ayrı değerlendirilir; yalnızca HKLM değerinden aygıt koruması sonucu çıkarılmaz.
 
 Linux için:
 
@@ -417,18 +417,18 @@ Bir sonraki ayrı hedef, kullanıcı onaylı ve etkisi açıklanmış bir Window
 
 ## 18. Windows çıkarılabilir disk yazma koruması — kapsam kararı ve güvenli tasarım
 
-**Kullanıcı kapsam onayı — 17 Kasım 2026**
+**Kullanıcı kapsamı anlama kararı — 17 Kasım 2026**
 
-Kullanıcı, DUYRA'nın ileride sunacağı ilk Windows aç/kapat işlevinin yalnızca seçilen tek bir USB belleği değil, Microsoft'un `Removable Disks: Deny write access` bilgisayar düzeyi ilkesi kapsamındaki tüm uygun çıkarılabilir diskleri etkilemesini kabul etti.
+Kullanıcı, Microsoft'un `Removable Disks: Deny write access` bilgisayar düzeyi ilkesinin yalnızca seçilen tek bir USB belleği değil, ilgili çıkarılabilir disk sınıfındaki uygun aygıtları etkilediğini kabul etti.
 
-Bu karar, özelliğin kapsamını açıkça belirtir; mevcut v0.1.12 uygulamasına politika yazma veya aygıt erişimi yetkisi vermez.
+Bu kayıt yalnızca politikanın sistem kapsamını anladığını gösterir. DUYRA'ya Registry/Grup İlkesi yazma, aygıt açma, yönetici yükseltmesi veya politika değiştirme yetkisi vermez. Sonraki teknik incelemede güvenli koşullu Registry yazma/geri alma yolu doğrulanamadığı için DUYRA'nın otomatik aç/kapat işlevi kapsam dışı bırakılmıştır.
 
 ### 18.1. Kapsam ve kullanıcıya açıklanacak etki
 
 - Microsoft belgesine göre `RemovableDiskDenyWriteAccess`, cihaz kapsamlıdır; Windows 10 sürüm 1809 ve sonrası ile Pro, Enterprise, Education ve IoT Enterprise edisyon ailelerinde desteklenir.
 - Etkinleştirildiğinde yazma erişimi ilgili çıkarılabilir depolama sınıfında engellenir. Bu, tek bir DUYRA incelemesine veya yalnızca o anda seçilmiş USB'ye özel değildir.
 - USB bellekler ve USB kart okuyucu üzerinden bağlanan microSD kartlar için gerçek sınıflandırma/etki ayrıca sınanmalıdır. Kart okuyucunun Windows'a hangi aygıt sınıfı olarak sunulduğu doğrulanmadan bütün microSD aygıtlarının kapsandığı varsayılmaz.
-- Etkinin bilgisayardaki diğer uygun çıkarılabilir diskleri de kapsadığı, kullanıcı onayı verilmeden önce açıkça gösterilir. Kullanıcı bu kapsamı kabul etmiştir.
+- Harici bir yönetim aracıyla politika uygulanacaksa bilgisayardaki diğer uygun çıkarılabilir disklerin de etkileneceği önceden açıklanır. Kullanıcının kapsamı anlamış olması DUYRA'ya politika yazma yetkisi vermez.
 - İlke, Windows'un tüm dosya yazma yollarını engelleyen genel bir koruma değildir. Ağ paylaşımları, host klasör eşlemeleri, sanal disk dosyaları ve başka aygıt sınıfları bu ilkeye bakılarak koruma altında sayılmaz.
 - Windows Home veya destek kapsamı dışındaki Windows sürümleri için bu ilkenin çalıştığı varsayılmaz.
 
@@ -468,7 +468,7 @@ HKLM `SOFTWARE\\Policies` altında `Deny_Write` değerinin bulunması tek başı
 1. **Salt okunur ön kontrol (tamamlandı):** RSoP/Grup İlkesi, MDM kayıt işaretleri, hedef Storage CSP kaydı, bilgisayarın etki alanı üyeliği ve mevcut politika değeri değerlendirilir. Eksik veya belirsiz sinyal “Bilinmiyor” olarak kalır.
 2. **Otomatik politika değiştirme (kapsam dışı):** Gerçek Windows Registry API'leriyle güvenli koşullu yazma/geri alma yolu belgelenemediği için DUYRA'da bu işlem sunulmayacaktır. PR #15'teki işlem modeli yalnızca sahte sağlayıcı testidir.
 3. **Harici politika gözlemi (mevcut):** Yetkili Windows yönetim aracıyla uygulanmış politika DUYRA tarafından salt okunur gösterilir. Ön koşulların uygun görünmesi DUYRA'ya yazma yetkisi vermez.
-4. **Tek seferlik gerçek aygıt kabulü (manuel, bekliyor):** Ayrılmış VM snapshot'ı ve boş/atılabilir test USB belleği kullanılır. Politika konuk Windows içinde yönetim aracıyla uygulanır; test sonucu ve snapshot geri dönüşü ayrı kaydedilir. DUYRA, Registry'ye yazmaz ve geri alma yapmaz.
+4. **Tek seferlik gerçek aygıt kabulü (manuel, bekliyor):** Ayrılmış VM snapshot'ı ve boş/atılabilir test USB belleği kullanılır. Politika yalnızca konuk Windows'un desteklenen yönetim aracıyla uygulanır; test sonucu ve snapshot geri dönüşü ayrı kaydedilir. DUYRA, Registry'ye yazmaz, yönetim aracı başlatmaz ve geri alma yapmaz.
 
 RSoP sorgusu `root\RSOP\Computer` içindeki `RSOP_RegistryPolicySetting` sınıfını kullanır; yalnızca tam ve başarılı bir sonuç “uygulandı/yok” olarak kabul edilir. Sorgu erişilemez veya zaman aşımına uğrarsa “Bilinmiyor” döner. MDM kayıt anahtarının varlığı yalnızca yönetim işaretidir; tek başına etkin Intune politikasının kanıtı değildir. Bu nedenle bu denetim bir kaynak ön değerlendirmesidir; yönetim kaynağının kesin olarak çözüldüğünü veya değişiklik izni verildiğini iddia etmez.
 
@@ -498,7 +498,7 @@ Ek gözlemler:
 1. `read → timestamp/revision kontrolü → RegSetValueEx/RegDeleteValue → read-back` akışı güvenli koşullu yazma veya geri alma olarak sunulmayacaktır. Kontrol ile yazma arasındaki zaman aralığında dış kaynak değişiklik yapabilir.
 2. Registry anahtarının ACL/security descriptor değerlerini kilit amacıyla değiştirmek bu işin kapsamı dışındadır; mevcut yönetim güvenlik sınırlarını değiştiren ayrı ve daha yüksek riskli bir sistem müdahalesi olur.
 3. PR #15 ile eklenen `src/policy_transaction.rs`, yalnızca sahte sağlayıcıda atomik koşullu yazma/silme sözleşmesinin beklenen davranışını test eder. `#[cfg(test)]` altındadır; gerçek Windows Registry sağlayıcısı değildir ve CI sonucu Windows kayıt defteri atomikliğini kanıtlamaz.
-4. Bu nedenle DUYRA'ya HKLM Registry/Grup İlkesi yazımı veya otomatik geri alma eklenmeyecektir. Salt okunur yönetim kaynağı ön kontrolü korunur. Yönetici tarafından desteklenen bir Windows yönetim aracıyla uygulanmış politikanın DUYRA tarafından salt okunur doğrulanması, ayrı bir ürün seçeneği olarak değerlendirilebilir.
+4. Bu nedenle DUYRA'ya HKLM Registry/Grup İlkesi yazımı veya otomatik geri alma eklenmeyecektir. Salt okunur yönetim kaynağı ön kontrolü ve yetkili yönetim aracıyla uygulanmış politikanın salt okunur gözlemi mevcut ürün davranışıdır.
 5. Otomatik değişiklik ancak yönetim kaynağı ve sahipliği güvenilir biçimde belirlenebildiğinde, dış kaynak değişikliklerine karşı platformun desteklediği gerçek koşullu işlem yolu kanıtlandığında ve geri alma/çökme kurtarma senaryoları izole VM'de doğrulandığında yeniden ele alınabilir. Bu şartlar sağlanmıyorsa davranış fail-closed kalır.
 
 Kaynaklar (Microsoft Learn, 17 Kasım 2026 tarihinde incelendi):
