@@ -463,7 +463,7 @@ DUYRA'nın ilerideki aç/kapat işlevi şu kuralları sağlamadan uygulanmayacak
 2. **Değişiklik ve geri alma motoru:** Yalnızca ilk denetim tüm sinyalleri açıkça olumsuz döndürdüğünde, ayrıca kullanıcı onayı alındığında değerlendirilebilir. Önceki registry değerinin/türünün yedeği, DUYRA'nın yazdığı değer ve sonradan dışarıdan değişiklik kontrolü ayrı test edilebilir birimler olmalıdır. Bu aşama tamamlanmadan HKLM yazma işlemi ürün akışına eklenmez.
 3. **Gerçek aygıt doğrulaması:** İzole Windows VM ve ayrılmış deneme USB/microSD üzerinde, host ilkesi ile konuk işletim sistemi ve Sandbox klasör eşlemeleri birbirinden ayrı sınanır.
 
-RSoP sorgusu `root\\RSOP\\Computer` içindeki `RSOP_RegistryPolicySetting` sınıfını kullanır; yalnızca tam ve başarılı bir sonuç “uygulandı/yok” olarak kabul edilir. Sorgu erişilemez veya zaman aşımına uğrarsa “Bilinmiyor” döner. MDM kayıt anahtarının varlığı yalnızca yönetim işaretidir; tek başına etkin Intune politikasının kanıtı değildir. Bu nedenle bu denetim bir kaynak ön değerlendirmesidir; yönetim kaynağının kesin olarak çözüldüğünü veya değişiklik izni verildiğini iddia etmez.
+RSoP sorgusu `root\RSOP\Computer` içindeki `RSOP_RegistryPolicySetting` sınıfını kullanır; yalnızca tam ve başarılı bir sonuç “uygulandı/yok” olarak kabul edilir. Sorgu erişilemez veya zaman aşımına uğrarsa “Bilinmiyor” döner. MDM kayıt anahtarının varlığı yalnızca yönetim işaretidir; tek başına etkin Intune politikasının kanıtı değildir. Bu nedenle bu denetim bir kaynak ön değerlendirmesidir; yönetim kaynağının kesin olarak çözüldüğünü veya değişiklik izni verildiğini iddia etmez.
 
 Kaynaklar:
 - Microsoft Storage Policy CSP: https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-storage
