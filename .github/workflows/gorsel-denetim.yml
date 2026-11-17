@@ -10,6 +10,7 @@ on:
       - "Cargo.lock"
       - "build.rs"
       - "scripts/ci-ekran-goruntusu.sh"
+      - "scripts/ci-inceleme-akisi.sh"
       - ".github/workflows/gorsel-denetim.yml"
   pull_request:
     branches: [main]
@@ -20,6 +21,7 @@ on:
       - "Cargo.lock"
       - "build.rs"
       - "scripts/ci-ekran-goruntusu.sh"
+      - "scripts/ci-inceleme-akisi.sh"
       - ".github/workflows/gorsel-denetim.yml"
   workflow_dispatch:
 
@@ -62,6 +64,11 @@ jobs:
         run: |
           xvfb-run -a -s "-screen 0 1600x1000x24 -nolisten tcp" \
             bash scripts/ci-ekran-goruntusu.sh
+
+      - name: Sahte verili inceleme akışını tıklayarak doğrula
+        run: |
+          xvfb-run -a -s "-screen 0 1600x1000x24 -nolisten tcp" \
+            bash scripts/ci-inceleme-akisi.sh
 
       - name: Görsel deneme çıktısını sakla
         if: always()
