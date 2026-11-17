@@ -314,7 +314,7 @@ fn draw_overview(
                     );
                     ui.add_space(9.0);
                     ui.label(
-                        RichText::new("İLK İNCELEME AKIŞI HAZIRLANIYOR")
+                        RichText::new("YENİ İNCELEME KAYDI OLUŞTURULABİLİR")
                             .size(9.0)
                             .strong()
                             .color(ACCENT),
