@@ -310,11 +310,18 @@ Kullanıcı, Windows üzerinde v0.1.9 → v0.1.10 otomatik güncellemesini ve a�
 
 ## 15. Otomatik inceleme akışı testi ve kullanıcı kabulü
 
-- Kullanıcıdan gelen 17 Kasım 2026 kabul testi, iki ayrı inceleme oluşturma, benzersiz numaralar, kayıtların kalıcılığı, listeleme ve kayıt seçimi davranışlarını doğruladı.
-- Kullanıcı, tekrarlanabilir arayüz akışlarının gerçek dava bilgisi olmadan GitHub Actions içinde otomatik tıklama, test kayıt klasörü, uygulamayı kapatıp yeniden açma, dosya sayısı/içerik kontrolleri ve ekran görüntüsü artifact'larıyla doğrulanmasını istedi.
-- Sıradaki küçük hedef: Linux görsel CI'ye **sahte verili İnceleme Akışı Smoke Testi** eklemek. Test uygulamayı başlatacak, iki inceleme oluşturacak, uygulamayı yeniden başlatacak, kayıtların geri geldiğini ve seçimin ekrana yansıdığını doğrulayacak. Test verisi yalnızca geçici CI klasöründe tutulacak; Release ve kullanıcı verisine dokunulmayacak.
+**Sahte verili CI smoke testi tamamlandı ve ana dala birleştirildi.**
+
+- PR #2: **İnceleme oluşturma ve yeniden açma akışını CI'da otomatik doğrula**; squash merge commit: `89e45c9bc07d71b433af8b1e1188ab8b2920ad8b`.
+- Workflow: `.github/workflows/gorsel-denetim.yml`; test betiği: `scripts/ci-inceleme-akisi.sh`.
+- Windows PR CI run `43998902297` başarılı: biçim, Clippy, testler ve Windows x64 release derlemesi geçti.
+- Linux görsel/etkileşim CI run `43998902293` başarılı; artifact `14292020043` indirildi ve ekran görüntüleri açılarak incelendi.
+- Smoke test geçici `XDG_DATA_HOME` kullanır; kullanıcı bilgisayarını, gerçek delili veya mevcut kullanıcı kayıtlarını kullanmaz.
+- Test Genel Bakış'tan ilk kaydı oluşturur, DUYRA'yı kapatıp tekrar açar, kaydın geri geldiğini doğrular, ikinci kaydı oluşturur, JSON içeriklerinde iki farklı UUID/İnceleme No ve beklenen durumu kontrol eder.
+- Her iki **Aç** düğmesi tıklanır. Açık İnceleme alanındaki içerik için alınan iki PNG karşılaştırılır; son başarılı çalışmada farklılık `862` piksel olarak ölçüldü. Her adımın ekran görüntüsü, stdout/stderr, kayıt JSON'ları ve durum özeti 7 günlük CI artifact'ında saklanır.
+- İlk iki koşuda yalnızca test betiğinin koordinat ve ImageMagick çıktı ayrıştırma hataları düzeltildi. Ürün kodunda bir hata bulunmadı; son koşu başarıyla tamamlandı.
 - Linux Xvfb/llvmpipe testi ortak egui kullanıcı akışının otomatik regresyon kontrolüdür; Windows işletim sistemi politikası, Windows izinleri, gerçek USB davranışı veya Windows yerel grafik sürücüsü için kanıt sayılmaz.
-- Windows gerçek kullanıcı kabulünü ancak işletim sistemi/aygıt davranışı veya Windows'a özgü kullanıcı deneyimi gerektiğinde isteyeceğiz. Kullanıcıdan gerçek delil veya hassas ekran görüntüsü istenmeyecek.
+- Windows'taki gerçek kullanıcı testi zaten v0.1.10 kabulinde yapıldı. Bundan sonra yalnızca işletim sistemi/aygıt davranışı veya Windows'a özgü kullanıcı deneyimi gerektiren kontrollerde kullanıcı kabulü isteyeceğiz. Kullanıcıdan gerçek delil veya hassas ekran görüntüsü istenmeyecek.
 - Test başarısız olursa log, JSON kayıtları ve ekran görüntüsü CI artifact'ında saklanır; hata kaynağı uygulama mı test ortamı mı ayrıştırılır.
 
 ### Yazılım öncelikli koruma kararı
@@ -323,3 +330,7 @@ Kullanıcı, Windows üzerinde v0.1.9 → v0.1.10 otomatik güncellemesini ve a�
 - Donanım engelleyici mevcut olduğunda ek bir kontrol olarak kullanılabilir, ancak yazılım akışının çalışması için şart koşulmaz.
 - Yazılımsal koruma etkinleştirilirken bilgisayara veya bilirkişinin mevcut iş akışına zarar verebilecek sessiz/geniş kapsamlı sistem değişikliği yapılmaz. Özellikle Windows'un çıkarılabilir disk ilkesi sistem kapsamını etkileyebildiği için kullanıcı onayı ve etki açıklaması gerekir.
 - Yazılım ile kanıtlanabilir koruma sağlanamıyorsa DUYRA başarısız/uyumsuz durumu açıkça bildirir; koruma doğrulanmış gibi göstermeden delil kaynağına erişim açılmaz.
+
+### Sıradaki ürün hedefi
+
+Windows üzerinde yazılımsal delil yazma-koruma ön kontrolünü tasarlamak: desteklenen Windows sürümü/edisyonu, yönetici yetkisi, mevcut removable-storage ilkesi ve etkinin kapsamını yalnızca okumak; hiçbir sistem ilkesini kullanıcı onayı olmadan değiştirmemek. İlk küçük hedef sadece **durum tespiti ve kullanıcıya açıklama** olacak; USB aygıtını açma/kopyalama bu hedefe eklenmeyecek.
