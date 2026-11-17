@@ -127,7 +127,9 @@ Otomatik güncelleme için kabul testi:
 - v0.1.8 → v0.1.9 güncellemesi gerçek kullanıcı bilgisayarında, uygulama kapatılıp yeniden açıldığında tamamlandı.
 - v0.1.9 güncelleyici değişikliği CI kontrollerinden geçti ve Release yayımlandı. Altı saatlik kontrol, kullanıcı onayıyla kurulum ve erteleme kodda bulunuyor.
 - v0.1.9'in yeni "Şimdi güncelle / Daha sonra" bildirimini kullanıcı ekranında doğrulamak için daha yeni bir gerçek sürüm gerekir. Sırf test için boş Release yayımlanmaz; bu kabul testi sonraki doğal sürümde yapılacaktır.
-- Şimdiki teknik deneme, GitHub Actions Windows makinesinde DUYRA penceresinin açılıp PNG olarak yakalanıp yakalanamayacağını ölçer. İlk deneme Actions run 43987188203 üzerinden izlenmektedir.
+- İlk Windows CI görsel denemesi Actions run 43987188203'te uygulamayı derledi; ancak uygulama pencere açılmadan `1` çıkış koduyla sonlandı. Oturum numarası `2` idi; tanı artifact'i 14285593012 yüklendi, fakat PNG üretilemedi.
+- İkinci deneme için yakalama betiğine standart çıktı/hata ve grafik bağdaştırıcısı tanılaması eklendi. Yeni deneme Actions run 43987622095 üzerinden izlenmektedir.
+- Görsel yakalama çalıştığı doğrulanana kadar bu otomasyon tamamlanmış sayılmaz.
 - Görüntü alınabilse bile bu, kullanıcının kendi bilgisayarındaki son görsel kabul testinin yerine geçmez. Kullanıcı bilgisayarı ile CI ortamının çözünürlüğü ve grafik sürücüsü farklı olabilir.
 - CI ekran yakalama yöntemi güvenilir değilse zorlanmaz; kullanıcıdan ekran görüntüsü alma yöntemi devam eder. Gerekirse etkileşimli Windows runner seçeneği ayrıca değerlendirilir.
 - Bu hedef doğrulanmadan yeni delil/deşifre özelliklerine geçilmez.
@@ -179,7 +181,7 @@ Bilinçli sınırlar:
 
 ### 12.3. CI üzerinden otomatik ekran görüntüsü alma
 
-**Aktif teknik deneme:** `.github/workflows/gorsel-denetim.yml` ve `scripts/ci-ekran-goruntusu.ps1` eklendi. İlk gerçek çalışma Actions run 43987188203'tür; sonuç görülmeden ekran yakalama çalışıyor kabul edilmez.
+**Aktif teknik deneme:** `.github/workflows/gorsel-denetim.yml` ve `scripts/ci-ekran-goruntusu.ps1` eklendi. İlk çalışma uygulama pencere açmadan çıktığı için başarısız oldu; ikinci çalışmada stderr ve grafik aygıtı da kaydediliyor (Actions run 43987622095).
 
 Hedeflenen yaklaşım:
 
