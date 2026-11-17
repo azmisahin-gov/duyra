@@ -4,7 +4,7 @@
 //! bölüm veya sektör okumaz; aygıta ya da Windows politikasına yazmaz.
 //! Benzersiz aygıt kimlikleri, yollar ve seri numaraları bu modele alınmaz.
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InventoryState {
     NotScanned,
     Unsupported,
@@ -13,7 +13,7 @@ pub enum InventoryState {
     Unknown,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PnpRemovability {
     ReportedRemovable,
     NotConfirmed,
