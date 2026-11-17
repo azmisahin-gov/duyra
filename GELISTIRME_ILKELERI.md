@@ -284,16 +284,18 @@ Her hedef ayrı kabul ölçütleriyle test edilir. Delil kaynağının koruma du
 
 ### 13.5. Kaynak aygıtını tanımlama ve salt okunur durumu — tasarım sınırları
 
-Bu, Issue #13'teki tek seferlik izole VM kabul testi tamamlandıktan sonra başlayacak ana ürün hedefidir. Bu bölüm tasarım sınırlarını kaydeder; gerçek aygıt keşfi, disk/volume açma veya veri okuma kodu eklemez.
+Bu ana ürün hedefinin ilk PnP listeleme adımı PR #24 ile ana dala alınmış ve kullanıcının gerçek Windows bilgisayarında üç disk adayı bularak doğrulanmıştır. Bu kullanıcı denemesinde hiçbir disk/volume tanıtıcısı açılmamış, dosya sistemi veya delil içeriği okunmamış ve hiçbir aygıta yazılmamıştır. Issue #13'teki politika kabul testi, daha yüksek riskli aygıt tanıtıcısı/DeviceIoControl aşamaları için ayrı kapı olarak kalır.
 
 **İlk aşama — yalnızca mevcut aygıt adaylarını listeleme**
 
-- Windows'ta mevcut PnP aygıt arayüzleri, Microsoft'un Configuration Manager veya SetupAPI arayüzleriyle listelenmelidir. Adaylar için yalnızca sistemde şu anda mevcut olan aygıtlar alınır: `CM_Get_Device_Interface_List` ile `CM_GET_DEVICE_INTERFACE_LIST_PRESENT` veya `SetupDiGetClassDevs` ile `DIGCF_PRESENT | DIGCF_DEVICEINTERFACE`, ardından `SetupDiEnumDeviceInterfaces`.
-- Aygıt özellikleri gerekiyorsa `CM_Get_Device_Interface_Property`, `SetupDiGetDeviceInterfaceProperty` veya `SetupDiGetDeviceProperty` gibi belgelenmiş PnP API'leri kullanılmalıdır. Aygıt keşfi için Registry anahtarları doğrudan taranmaz.
+- Mevcut Windows uygulaması disk aygıtı sınıfını `SetupDiGetClassDevs` + `DIGCF_PRESENT` ve `SetupDiEnumDeviceInfo` ile listeler. Yalnızca o anda mevcut disk aygıtları aday olarak alınır; aygıt arayüzü veya volume açılmaz.
+- Adaylar için yalnızca `SPDRP_FRIENDLYNAME`, `SPDRP_DEVICEDESC`, `SPDRP_CAPABILITIES` ve `SPDRP_REMOVAL_POLICY` PnP özellikleri okunur. Aygıt keşfi için Registry anahtarları doğrudan taranmaz; PnP özellikleri SetupAPI üzerinden alınır.
+- `SPDRP_CAPABILITIES` içindeki `CM_DEVCAP_REMOVABLE`, PnP aygıt düğümünün kendi üst düğümünden ayrılabilirliğini anlatır; takılı depolama medyasının çıkarılabilir olduğunu ifade etmez. PnP ağacındaki çocuk düğümün bu işareti taşımaması, USB bellek veya USB SSD'nin sabit medya/sabit disk olarak sınıflandırıldığı anlamına gelmez.
+- `SPDRP_REMOVAL_POLICY`, Windows'un aygıt örneği için bildirdiği çıkarma politikasıdır. Microsoft, USB türü sürücülerin belirlenmesinde bu özelliğin kullanılmasını belirtir; DUYRA değeri bağımsız bir sinyal olarak gösterir ve bu değerden yazılabilirlik, donanımsal koruma veya delil güvenliği sonucu çıkarmaz.
 - Bu ilk aşamada fiziksel disk veya volume için `CreateFile` çağrısı yapılmaz; `DeviceIoControl` çalıştırılmaz; bölüm/volume bağlama, ayırma veya otomatik bağlama ayarı değiştirilmez; sektör, dosya sistemi veya dosya içeriği okunmaz/yazılmaz.
 - Sistem tarafından döndürülen her aygıt otomatik seçilmez. Birden fazla benzer aygıt varsa uygulama seçim yapmaz; bilirkişi adayın doğru kaynak olduğunu ayrıca onaylamadan ilerlenmez.
 - Seri numarası, PnP instance ID, volume kimliği, sürücü harfi ve tam aygıt yolu tanılama kayıtlarına yazılmaz. Gerekli geçici tanımlayıcıların arayüzde gösterilip gösterilmeyeceği ayrıca kararlaştırılır.
-- Windows'un aygıtı çıkarılabilir/sabit disk veya başka sınıfta sunması belirsizse sınıf tahmin edilmez; sonuç Bilinmiyor kalır.
+- PnP düğümünün üst düğümünden ayrılma işareti ile Windows çıkarma politikası iki ayrı alan olarak gösterilir. İkisi tek bir “çıkarılabilir/sabit” sınıfına indirgenmez; eksik veya beklenmeyen değer Bilinmiyor kalır.
 
 **İkinci aşama — yazılabilirlik ve bağlama durumunu ayrı gözlemleme**
 
@@ -314,17 +316,21 @@ Bu, Issue #13'teki tek seferlik izole VM kabul testi tamamlandıktan sonra başl
 
 **Test ve kabul kapısı**
 
-1. Issue #13'ün kullanıcı kabul testi tamamlanmadan gerçek kaynak aygıtına yönelik yeni uygulama kodu başlamaz.
-2. İlk kod hedefi platform API'sinden ayrılmış sahte aygıt sağlayıcısı ve durum eşleme testleridir.
-3. CI yalnızca sahte aygıtlarla çalışır; gerçek disk, USB, Registry veya mount işlemi yapmaz.
-4. Windows ve Linux sağlayıcıları ayrı, sınırlı arayüzlerle geliştirilir. Herhangi bir aygıt tanıtıcısı açılması veya DeviceIoControl/BLKROGET sorgusu ayrı teknik inceleme ve izole VM kabul testi gerektirir.
-5. Kullanıcı kabulü yalnızca snapshot alınmış izole test ortamı ve boş/atılabilir test medyasıyla yapılır. Gerçek delil medyası hiçbir zaman test aygıtı değildir.
-6. Kaynak aygıt kimliği, sınıfı ve koruma durumu doğrulanmadan kaynak dosyası listelenmez veya açılmaz.
+1. Salt okunur PnP aday listeleme aşaması uygulanmış ve gerçek Windows ana bilgisayarda kullanıcı tarafından denenmiştir. Bu aşamanın çalışması, aygıtın yazılabilirliğini veya delil korumasını doğrulamaz.
+2. PnP özellik eşlemeleri sahte sağlayıcı testleriyle sınanır; Windows CI ayrıca SetupAPI PnP listeleme çağrısını gerçek runner ortamında smoke test olarak çalıştırır. Bu test disk/volume tanıtıcısı açmaz ve içerik okumaz.
+3. CI üzerinde gerçek delil medyası kullanılmaz; Registry, Grup İlkesi veya mount ayarı değiştirilmez. PnP sorgusu yalnızca bağlı runner aygıtlarının ad ve güvenli sınıflandırma özelliklerini okur.
+4. Issue #13'teki tek seferlik politika kabul testi, gerçek aygıt tanıtıcısı açma, DeviceIoControl, yazılabilirlik sorgusu veya daha yüksek riskli erişim aşamalarına geçmeden önce ayrı kabul kapısı olarak kalır.
+5. Windows ve Linux sağlayıcıları ayrı, sınırlı arayüzlerle geliştirilir. Herhangi bir aygıt tanıtıcısı açılması veya DeviceIoControl/BLKROGET sorgusu ayrı teknik inceleme ve uygun izole test gerektirir.
+6. Kullanıcı kabulü için ayrılmış, boş/atılabilir test medyası kullanılır. Gerçek delil medyası hiçbir zaman yazma/geri alma denemesi için test aygıtı değildir.
+7. Kaynak aygıt kimliği, sınıfı ve koruma durumu doğrulanmadan kaynak dosyası listelenmez veya açılmaz.
 
 Teknik kaynaklar:
 
 - Microsoft — [Enumerating installed device interfaces](https://learn.microsoft.com/en-us/windows-hardware/drivers/install/enumerating-installed-device-interface-classes)
 - Microsoft — [Accessing device properties](https://learn.microsoft.com/en-us/windows-hardware/drivers/install/accessing-device-properties)
+- Microsoft — [SetupDiGetDeviceRegistryPropertyW](https://learn.microsoft.com/en-us/windows/win32/api/setupapi/nf-setupapi-setupdigetdeviceregistrypropertyw)
+- Microsoft — [Overview of removable device capability](https://learn.microsoft.com/en-us/windows-hardware/drivers/install/overview-of-the-removable-device-capability)
+- Microsoft — [GetDriveTypeW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdrivetypew)
 - Microsoft — [IOCTL_DISK_IS_WRITABLE](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-ioctl_disk_is_writable)
 - Linux man-pages — [blockdev(8)](https://man7.org/linux/man-pages/man8/blockdev.8.html)
 - Linux kernel — [BLKROGET / BLKROSET ioctl definitions](https://github.com/torvalds/linux/blob/master/tools/include/uapi/linux/fs.h)
