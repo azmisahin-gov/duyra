@@ -764,9 +764,7 @@ try {
     $setting = Get-CimInstance -Namespace 'root\RSOP\Computer' -ClassName 'RSOP_RegistryPolicySetting' -ErrorAction Stop |
         Where-Object {
             $_.registryKey -ieq $target -and
-            $_.valueName -ieq 'Deny_Write' -and
-            $_.precedence -eq 1 -and
-            -not $_.deleted
+            $_.valueName -ieq 'Deny_Write'
         } |
         Select-Object -First 1
 
