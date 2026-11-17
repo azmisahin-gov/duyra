@@ -262,11 +262,7 @@ mod windows_write_protection {
         WritePolicyStatus, WriteProtectionSupport, WindowsWriteProtectionPreflight,
         assess_write_protection_support,
     };
-    use std::{
-        ffi::c_void,
-        mem::size_of,
-        ptr,
-    };
+    use std::{ffi::c_void, mem::size_of, ptr};
 
     type HKey = *mut c_void;
     type Handle = *mut c_void;
@@ -498,9 +494,7 @@ mod windows_write_protection {
 
     fn process_is_elevated() -> Result<bool, String> {
         let mut token: Handle = ptr::null_mut();
-        let opened = unsafe {
-            open_process_token(get_current_process(), TOKEN_QUERY, &mut token)
-        };
+        let opened = unsafe { open_process_token(get_current_process(), TOKEN_QUERY, &mut token) };
 
         if opened == 0 {
             let code = unsafe { get_last_error() } as i32;
@@ -565,7 +559,8 @@ mod windows_write_protection {
             Ok(Some(value)) => match value.parse::<u32>() {
                 Ok(build) => Some(build),
                 Err(_) => {
-                    read_warnings.push("Windows derleme numarası sayısal olarak okunamadı.".to_owned());
+                    read_warnings
+                        .push("Windows derleme numarası sayısal olarak okunamadı.".to_owned());
                     None
                 }
             },
@@ -584,8 +579,7 @@ mod windows_write_protection {
             }
         };
 
-        let support =
-            assess_write_protection_support(edition_id.as_deref(), build_number);
+        let support = assess_write_protection_support(edition_id.as_deref(), build_number);
         let computer_policy = read_policy();
 
         WindowsWriteProtectionPreflight {
@@ -684,8 +678,18 @@ mod windows_preflight_tests {
             panic!("Windows derlemesinde Windows ön kontrolü döndürülmelidir.");
         };
 
-        assert!(status.product_name.as_deref().is_some_and(|value| !value.is_empty()));
-        assert!(status.edition_id.as_deref().is_some_and(|value| !value.is_empty()));
+        assert!(
+            status
+                .product_name
+                .as_deref()
+                .is_some_and(|value| !value.is_empty())
+        );
+        assert!(
+            status
+                .edition_id
+                .as_deref()
+                .is_some_and(|value| !value.is_empty())
+        );
         assert!(status.build_number.is_some());
     }
 }
