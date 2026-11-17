@@ -11,7 +11,7 @@ enum DeviceClass {
     Unknown,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 struct ProviderCandidate {
     display_name: String,
     class: DeviceClass,
@@ -37,7 +37,7 @@ enum DiscoveryState {
     Unknown,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 struct DeviceCandidate {
     /// Yalnızca o envanter görüntüsünde geçerli geçici satır numarasıdır.
     /// Kalıcı kimlik, aygıt yolu, PnP instance ID veya seri numarası değildir.
@@ -46,7 +46,7 @@ struct DeviceCandidate {
     class: DeviceClass,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 struct DeviceInventory {
     state: DiscoveryState,
     candidates: Vec<DeviceCandidate>,
@@ -182,6 +182,7 @@ mod tests {
             result: Ok(vec![
                 candidate("USB bellek", DeviceClass::Removable),
                 candidate("USB disk", DeviceClass::Fixed),
+                candidate("Diğer aygıt", DeviceClass::Other),
             ]),
         };
         let inventory = DeviceInventory::enumerate(&provider);
@@ -192,6 +193,7 @@ mod tests {
         assert_eq!(inventory.candidates[1].row, 1);
         assert_eq!(inventory.candidates[0].class, DeviceClass::Removable);
         assert_eq!(inventory.candidates[1].class, DeviceClass::Fixed);
+        assert_eq!(inventory.candidates[2].class, DeviceClass::Other);
     }
 
     #[test]
@@ -250,6 +252,10 @@ mod tests {
         assert_eq!(
             observe_windows_writeability(WindowsWriteabilityResult::Failed),
             ReadOnlyObservation::Unknown
+        );
+        assert_eq!(
+            observe_windows_writeability(WindowsWriteabilityResult::Unsupported),
+            ReadOnlyObservation::Unsupported
         );
     }
 
