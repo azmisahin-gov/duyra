@@ -1213,7 +1213,6 @@ mod windows_policy_authority_smoke_tests {
     }
 }
 
-
 #[cfg(test)]
 mod policy_change_readiness_tests {
     use super::{
@@ -1268,11 +1267,7 @@ mod policy_change_readiness_tests {
             WriteProtectionSupport::UnsupportedBuild(17_762),
             WriteProtectionSupport::UnsupportedEdition("Core".to_owned()),
         ] {
-            let status = supported_status(
-                WritePolicyStatus::NotConfigured,
-                Some(true),
-                support,
-            );
+            let status = supported_status(WritePolicyStatus::NotConfigured, Some(true), support);
 
             assert_eq!(
                 assess_policy_change_readiness(&status, &unmanaged_authority()),
@@ -1318,11 +1313,7 @@ mod policy_change_readiness_tests {
         ];
 
         for policy in cases {
-            let status = supported_status(
-                policy,
-                Some(true),
-                WriteProtectionSupport::Supported,
-            );
+            let status = supported_status(policy, Some(true), WriteProtectionSupport::Supported);
 
             assert_eq!(
                 assess_policy_change_readiness(&status, &unmanaged_authority()),
