@@ -1138,7 +1138,6 @@ mod windows_preflight_tests {
     }
 }
 
-
 #[cfg(all(test, target_os = "windows"))]
 mod windows_policy_authority_smoke_tests {
     use super::inspect_windows_policy_authority;
