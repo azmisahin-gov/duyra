@@ -184,6 +184,10 @@ click_at 1137 225
 xdotool mousemove --sync --window "$window_id" 800 680
 capture "inceleme-akisi-06-ikinci-kayit-acik.png"
 
+# Ayarlar sayfasını da aç; Linux CI üzerinde Windows'a özgü ön kontrol sınırı görünür olmalıdır.
+click_at 110 474
+capture "inceleme-akisi-07-yazma-koruma-on-kontrol.png"
+
 difference="$(compare -metric AE "$artifact_dir/inceleme-akisi-05-ilk-kayit-acik.png" "$artifact_dir/inceleme-akisi-06-ikinci-kayit-acik.png" null: 2>&1 || true)"
 difference="${difference%% *}"
 if [[ ! "$difference" =~ ^[0-9]+$ ]] || (( difference == 0 )); then
